@@ -109,12 +109,14 @@ The card ships as five files that sit in the same folder:
 
 ### HACS
 
-The card isn't in the default HACS store yet, so add it as a custom repository:
+1. Open HACS and search for **Animated Weather Card**.
+2. Select it, then select **Download**.
+3. Refresh your browser.
+
+If the search doesn't find it, add it as a custom repository and search again:
 
 1. Open HACS and select ⋮ (top right) → **Custom repositories**.
 2. Paste `https://github.com/alexsto1an/ha-ani-weather-card` and choose the type **Dashboard**.
-3. Search for **Animated Weather Card** and download it.
-4. Refresh your browser.
 
 HACS adds the dashboard resource for you when your dashboards are managed in the UI. For YAML-mode dashboards, add it yourself:
 
