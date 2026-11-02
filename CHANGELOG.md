@@ -7,13 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-02
+
 ### Added
+
 - A share image for the live demo and the setup guide: a link to either unfurls with the card on its partly cloudy day under the headline. Both pages carry the Open Graph and Twitter card tags for it.
 
 ### Changed
+
 - The README and the setup guide lead with the HACS search, now that the card is in HACS's default store. The custom repository steps stay as a fallback.
 
 ### Fixed
+
 - Weather no longer brings up the dashboard's scrollbars. Fog, clouds and leaves were hidden past the card's edge but still counted towards the page's size, which showed most in the last column and on phones. Spilled weather looks as it did.
 - Rain, snow and sleet no longer leave particles frozen at the card's top edge after you switch tabs or the card scrolls away and back. Each pause could strand a particle that had just started to fall, and it stayed there until the weather changed.
 
@@ -74,7 +79,8 @@ The first public release: two cards for Home Assistant, the Animated Weather Car
 - **Try it first.** A [live demo](https://alexsto1an.github.io/ha-ani-weather-card/) runs the real card in your browser, on sample data or your own weather, and a [setup guide](https://alexsto1an.github.io/ha-ani-weather-card/setup/) walks through every step.
 - **Developer mode.** `dev_mode: true` shows sample weather with a panel for every condition, time of day and layer, and a Fly a plane button. Only a card in dev mode logs to the console.
 
-[Unreleased]: https://github.com/alexsto1an/ha-ani-weather-card/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/alexsto1an/ha-ani-weather-card/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/alexsto1an/ha-ani-weather-card/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/alexsto1an/ha-ani-weather-card/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/alexsto1an/ha-ani-weather-card/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/alexsto1an/ha-ani-weather-card/compare/v1.0.0...v1.0.1
