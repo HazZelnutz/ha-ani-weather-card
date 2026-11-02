@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - A share image for the live demo and the setup guide: a link to either unfurls with the card on its partly cloudy day under the headline. Both pages carry the Open Graph and Twitter card tags for it.
 
+### Fixed
+- Weather no longer brings up the dashboard's scrollbars. Fog, clouds and leaves were hidden past the card's edge but still counted towards the page's size, which showed most in the last column and on phones. Spilled weather looks as it did.
+- Rain, snow and sleet no longer leave particles frozen at the card's top edge after you switch tabs or the card scrolls away and back. Each pause could strand a particle that had just started to fall, and it stayed there until the weather changed.
+
 ## [1.1.0] - 2026-10-25
 
 ### Changed

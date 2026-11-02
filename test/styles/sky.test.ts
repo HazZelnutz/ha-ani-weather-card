@@ -149,6 +149,15 @@ describe('time-of-day dissolve', () => {
     });
 });
 
+describe('spilled weather', () => {
+    it('paints past the card without widening the page', () => {
+        // Not paint containment, which would clip the spill to the card
+        const rule = getMainCardStyles().match(/\.animated-weather-card\[data-spill\] \{([^}]*)\}/)![1];
+        expect(rule).toContain('overflow: visible');
+        expect(rule).toMatch(/contain: layout;/);
+    });
+});
+
 describe('clouds over the top edge', () => {
     const css = getMainCardStyles();
 

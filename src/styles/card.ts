@@ -105,7 +105,10 @@ ${iconBoxCss('animated-weather-card')}
             ${dissolveTransition()};
         }
 
-        .animated-weather-card[data-spill] { overflow: visible; }
+        /* clip-path only hides what lies past the card: a fog bank or a cloud
+           track still widens the page and brings up its scrollbars. Layout
+           containment leaves spilled weather painted but never scrolled to. */
+        .animated-weather-card[data-spill] { overflow: visible; contain: layout; }
 
         .animated-weather-card.no-transitions,
         .animated-weather-card.no-transitions * {

@@ -7,7 +7,8 @@ import type {
     WeatherCondition, 
     TimeOfDayManager, 
     DayNightColors,
-    HassEntity 
+    GSAPAnimation,
+    HassEntity
 } from './types';
 
 /**
@@ -294,25 +295,41 @@ export function clearPendingTimeouts(timeouts: (NodeJS.Timeout | number | null |
 }
 
 /**
- * Pause all GSAP tweens targeting elements within a container.
- * Scoped to the container's descendants so other card instances are unaffected.
+ * Every animation moving a container's descendants, each as its outermost
+ * timeline. Pause and resume these, never the tweens inside them: a timeline
+ * leaves paused children out of its duration, so one that hasn't drawn yet
+ * collapses to nothing and leaves GSAP without firing onComplete, stranding
+ * whatever it was carrying.
  */
-export function pauseCardGSAPAnimations(container: HTMLElement): void {
-    if (!window.AnimatedWeatherCardGsap) return;
+function outermostAnimations(container: Element): Set<GSAPAnimation> {
+    const outermost = new Set<GSAPAnimation>();
     container.querySelectorAll('*').forEach(el => {
-        window.AnimatedWeatherCardGsap.getTweensOf(el).forEach((t: any) => t.pause());
+        window.AnimatedWeatherCardGsap.getTweensOf(el).forEach((tween: GSAPAnimation) => {
+            let animation = tween;
+            // Only GSAP's root timeline has no parent
+            while (animation.parent?.parent) animation = animation.parent;
+            outermost.add(animation);
+        });
     });
+    return outermost;
 }
 
 /**
- * Resume all GSAP tweens targeting elements within a container.
+ * Pause every GSAP animation targeting elements within a container.
  * Scoped to the container's descendants so other card instances are unaffected.
  */
-export function resumeCardGSAPAnimations(container: HTMLElement): void {
+export function pauseCardGSAPAnimations(container: Element): void {
     if (!window.AnimatedWeatherCardGsap) return;
-    container.querySelectorAll('*').forEach(el => {
-        window.AnimatedWeatherCardGsap.getTweensOf(el).forEach((t: any) => t.resume());
-    });
+    outermostAnimations(container).forEach(animation => animation.pause());
+}
+
+/**
+ * Resume every GSAP animation targeting elements within a container.
+ * Scoped to the container's descendants so other card instances are unaffected.
+ */
+export function resumeCardGSAPAnimations(container: Element): void {
+    if (!window.AnimatedWeatherCardGsap) return;
+    outermostAnimations(container).forEach(animation => animation.resume());
 }
 
 /**
