@@ -6,10 +6,17 @@ import { SleetAnimation } from '../../src/sleet-animation';
 import { createGSAPCloud, createGSAPSwoosh, CLOUD_LAYERS, driftWindFactor, removeClouds } from '../../src/gsap-effects';
 import { WindAnimation, MAX_LEAVES, MAX_SWOOSHES, LEAF_GAP_MS } from '../../src/wind-animation';
 import { LightningAnimation, LIGHTNING_FIRST_FLASH_MS, LIGHTNING_INTERVAL_MS, LIGHTNING_JOLT_DELAY_SEC } from '../../src/lightning-animation';
+import { pauseCardGSAPAnimations, resumeCardGSAPAnimations } from '../../src/utils';
+import { gsap as realGsap } from 'gsap';
 import type { FakeTimeline } from '../setup';
 
 type GsapMock = { timeline: ReturnType<typeof vi.fn> };
 const gsap = (): GsapMock => (window as unknown as { AnimatedWeatherCardGsap: GsapMock }).AnimatedWeatherCardGsap;
+
+/** Swap the stub for GSAP itself, for what depends on how it treats paused children. */
+const useRealGsap = () => {
+    (window as unknown as { AnimatedWeatherCardGsap: unknown }).AnimatedWeatherCardGsap = realGsap;
+};
 
 /** Timelines created so far, oldest first. */
 const timelines = (): FakeTimeline[] => gsap().timeline.mock.results.map(r => r.value as FakeTimeline);
@@ -401,6 +408,86 @@ describe('wind', () => {
             .map(([, vars]) => vars.opacity).filter((o: unknown) => typeof o === 'number');
         expect(Math.max(...opacities)).toBeLessThanOrEqual(0.35);
         host.remove();
+    });
+
+    it('pauses a leaf as a whole', async () => {
+        useRealGsap();
+        const host = makeWindCard();
+        const wind = new WindAnimation(host, { intensity: 1, scale: 1 }, { entity: 'weather.home' });
+        await wind.start();
+        vi.advanceTimersByTime(600);
+        const leaf = host.querySelector('.leaf-gsap')!;
+        const crossing = realGsap.getTweensOf(leaf)[0].parent!;
+
+        await wind.pause();
+        expect(crossing.paused()).toBe(true);
+        expect(realGsap.getTweensOf(leaf).some(tween => tween.paused())).toBe(false);
+
+        await wind.resume();
+        expect(crossing.paused()).toBe(false);
+        await wind.stop();
+        host.remove();
+    });
+});
+
+describe('pausing a card', () => {
+    let host: HTMLElement;
+    let drop: HTMLElement;
+
+    beforeEach(() => {
+        useRealGsap();
+        host = document.createElement('div');
+        host.innerHTML = '<div class="drop"></div>';
+        drop = host.firstElementChild as HTMLElement;
+        document.body.appendChild(host);
+    });
+
+    afterEach(() => {
+        realGsap.killTweensOf(drop);
+        host.remove();
+    });
+
+    it('never strands a timeline that has not drawn yet', () => {
+        const onComplete = vi.fn();
+        const fall = realGsap.timeline({ onComplete }).fromTo(drop, { y: -24 }, { y: 200, duration: 0.5, ease: 'none' });
+
+        pauseCardGSAPAnimations(host);
+        expect(fall.paused()).toBe(true);
+        // Pausing the tween inside it would make this 0: GSAP would then drop
+        // the timeline without firing onComplete
+        expect(fall.duration()).toBe(0.5);
+
+        resumeCardGSAPAnimations(host);
+        expect(fall.paused()).toBe(false);
+        fall.progress(1);
+        expect(onComplete).toHaveBeenCalledOnce();
+    });
+
+    it('pauses the outermost timeline of a nested one', () => {
+        const inner = realGsap.timeline().to(drop, { x: 10, duration: 1 });
+        const outer = realGsap.timeline().add(inner);
+        pauseCardGSAPAnimations(host);
+        expect(outer.paused()).toBe(true);
+        expect(inner.paused()).toBe(false);
+        resumeCardGSAPAnimations(host);
+        expect(outer.paused()).toBe(false);
+    });
+
+    it('pauses a tween that stands alone', () => {
+        const tween = realGsap.to(drop, { x: 10, duration: 1 });
+        pauseCardGSAPAnimations(host);
+        expect(tween.paused()).toBe(true);
+        resumeCardGSAPAnimations(host);
+        expect(tween.paused()).toBe(false);
+    });
+
+    it('leaves other cards alone', () => {
+        const other = document.createElement('div');
+        const tween = realGsap.to(other, { x: 10, duration: 1 });
+        realGsap.to(drop, { x: 10, duration: 1 });
+        pauseCardGSAPAnimations(host);
+        expect(tween.paused()).toBe(false);
+        realGsap.killTweensOf(other);
     });
 });
 

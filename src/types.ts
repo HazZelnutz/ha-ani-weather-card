@@ -266,6 +266,7 @@ export interface AnimatedWeatherCardElement extends HTMLElement {
  * GSAP animation handle type
  */
 export interface GSAPAnimation {
+    parent?: GSAPAnimation | null;
     kill(): void;
     pause(): GSAPAnimation;
     resume(): GSAPAnimation;

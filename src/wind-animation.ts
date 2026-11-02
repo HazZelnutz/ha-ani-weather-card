@@ -3,7 +3,7 @@
 import { BaseAnimation, BaseAnimationConfig, AnimationLifecycleState } from './base-animation';
 import { AnimatedWeatherCardConfig } from './types';
 import { createGSAPLeaf, createGSAPSwoosh } from './gsap-effects';
-import { getWeatherSettings, devLog } from './utils';
+import { getWeatherSettings, devLog, pauseCardGSAPAnimations, resumeCardGSAPAnimations } from './utils';
 import { between } from './particle-pool';
 
 export interface WindAnimationConfig extends BaseAnimationConfig {
@@ -132,16 +132,12 @@ export class WindAnimation extends BaseAnimation {
 
     protected async onPause(): Promise<void> {
         this.clearTimers();
-        this.element.querySelectorAll(`${this.layerSelector} .leaf-gsap, ${this.layerSelector} .wind-swoosh-gsap`).forEach(p => {
-            window.AnimatedWeatherCardGsap?.getTweensOf(p).forEach((t: any) => t.pause());
-        });
+        pauseCardGSAPAnimations(this.layer());
         devLog(this.config.devMode, 'Wind animation paused');
     }
 
     protected async onResume(): Promise<void> {
-        this.element.querySelectorAll(`${this.layerSelector} .leaf-gsap, ${this.layerSelector} .wind-swoosh-gsap`).forEach(p => {
-            window.AnimatedWeatherCardGsap?.getTweensOf(p).forEach((t: any) => t.resume());
-        });
+        resumeCardGSAPAnimations(this.layer());
         this.clearTimers();
         this.scheduleLeaf(between(300, 900));
         if (this.windConfig.swooshEnabled) {
