@@ -5,7 +5,7 @@
 **Live weather, on your dashboard.**
 
 [![GitHub Release](https://img.shields.io/github/v/release/alexsto1an/ha-ani-weather-card?style=flat-square)](https://github.com/alexsto1an/ha-ani-weather-card/releases)
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=flat-square)](https://hacs.xyz/)
 [![License](https://img.shields.io/github/license/alexsto1an/ha-ani-weather-card?style=flat-square)](https://github.com/alexsto1an/ha-ani-weather-card/blob/main/LICENSE)
 
 ![Three weather cards over Lisbon, each with its note: a sunny afternoon, a thunderstorm and a clear night](docs/images/hero.webp)

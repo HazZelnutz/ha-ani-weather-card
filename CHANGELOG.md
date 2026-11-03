@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The README's HACS badge says Default instead of Custom, now that the card is in HACS's default store.
+
 ## [1.1.1] - 2026-11-02
 
 ### Added
