@@ -81,6 +81,54 @@ describe('live value updates', () => {
     });
 });
 
+describe('live values past the decimal point', () => {
+    let card: HTMLElement & { setConfig(config: object): void; hass: unknown };
+
+    const reading = (attributes: Record<string, number>) => ({
+        states: {
+            'weather.home': {
+                entity_id: 'weather.home', state: 'sunny',
+                attributes: { humidity: 50, temperature_unit: '°C', ...attributes },
+            },
+        },
+        config: { time_zone: 'UTC' },
+        language: 'en',
+        localize: () => '',
+    });
+
+    const mount = async (config: object, attributes: Record<string, number>) => {
+        card = document.createElement('animated-weather-card') as typeof card;
+        card.setConfig({ type: 'custom:animated-weather-card', entity: 'weather.home', ...config });
+        card.hass = reading(attributes);
+        document.body.appendChild(card);
+        await vi.advanceTimersByTimeAsync(1000);
+    };
+
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => {
+        card.remove();
+        vi.useRealTimers();
+    });
+
+    it('updates a temperature that moved only after the decimal point', async () => {
+        await mount({ temperature_decimals: 1 }, { temperature: 20.4 });
+        const temperature = () => (card.querySelector('.temperature-value') as HTMLElement).textContent;
+        expect(temperature()).toBe('20.4');
+        // Both round to 20
+        card.hass = reading({ temperature: 20.2 });
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(temperature()).toBe('20.2');
+    });
+
+    it('updates feels like from the weather entity when only it changed', async () => {
+        await mount({}, { temperature: 20, apparent_temperature: 18 });
+        const meta = () => (card.querySelector('.hero-meta') as HTMLElement).textContent;
+        expect(meta()).toContain('18°');
+        card.hass = reading({ temperature: 20, apparent_temperature: 16 });
+        expect(meta()).toContain('16°');
+    });
+});
+
 describe('live data updates and the weather', () => {
     let card: HTMLElement & { setConfig(config: object): void; hass: unknown };
 

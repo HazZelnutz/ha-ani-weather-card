@@ -95,12 +95,13 @@ demo/
 ### Rendering and updates
 
 - **Element.** `AnimatedWeatherCard` is a plain `HTMLElement`, not Lit. It renders into light DOM: an `ha-card` with the card's markup and a `<style>` holding its CSS.
-- **Live updates.** The card renders once, then updates in place: `_updateDataInPlace` swaps text, the hero text fades through, and `syncValueIcon` keeps the wind and pressure arrows current. A data update never restarts the weather: an animation that restarts redraws itself at random, which reads as a snap.
+- **Live updates.** The card renders once, then updates in place: `_updateDataInPlace` swaps text, the hero text fades through, and `syncValueIcon` keeps the wind and pressure arrows current. A data update never restarts the weather: an animation that restarts redraws itself at random, which reads as a snap. Whether an update is due compares the weather entity's attributes as they are, not rounded, since what's shown can carry a decimal; the update only touches text that changed.
 - **Condition changes.** When the condition changes, the old weather fades out, the new weather fades in and the sky cross-fades. Nothing is rebuilt.
 - **Data.** `processWeatherData` (`weather-data.ts`) combines the weather entity with any configured sensors:
   - outdoor temperature, feels like, humidity, wind speed and direction, pressure and indoor readings (a wind speed sensor also sets how fast the weather moves; a direction sensor can report degrees or a compass point)
   - the sun entity, for the sunset or sunrise metric
   - the condition's display name, which comes from Home Assistant's `formatEntityState` so it's translated
+  - the temperatures (outdoor, feels like, indoor) in whole degrees, or to one decimal with `temperature_decimals: 1` (`temperatureDecimals`), in the language's number format
 - **Condition mapping.** `getWeatherClass` (`utils.ts`) maps any condition string to one of fifteen classes (`SKY_CONDITIONS`):
   - It matches substrings in priority order, so free text from other integrations works too.
   - Storm beats fog, fog beats heavy rain, and so on.
@@ -147,7 +148,7 @@ demo/
 - **Metrics.** `applySizeState` measures whether the metrics fit in one row against the real, translated labels. It falls back to a 2×2 grid, with 24 px of hysteresis.
 - **Short frames.** In a fixed frame it steps `data-height` down through `compact`, `short`, `tight` and `minimal` (`HEIGHT_STEPS`) until nothing overflows. With a note, the note gives way first (`NOTE_FIT_STEPS`, which also sets `data-note`): `close` (regular's sizes with short's gaps, to keep the longer note whole), then its one line, then `snug` (short's sizes, keeping the location and the line under the condition), then none, then the steps above. Each step keeps the one before it and gives up a little more, so the card lands on the roomiest layout that fits: a phone's sections row (353 × 248) is `tight`, which keeps the metric labels.
 - **Wide cards.** At 640 px and wider (a container query), the metrics move beside a larger temperature.
-- **Compact variant.** `compact: true` sets `data-variant="compact"`.
+- **Compact variant.** `compact: true` sets `data-variant="compact"`. Its fit also counts the condition cut short as not fitting, so a narrow strip shrinks the temperature (`short`, then `tight`) to keep the condition whole.
 - **Sections view.** `getGridOptions` sizes the card at 12 × 4, 12 × 5 with a note, or 12 × 2 compact.
 - **Measuring.** The fit compares `getBoundingClientRect` widths with `clientWidth`. CSS `zoom` on an ancestor skews that, so a zoomed screenshot page always shows the grid. Browser zoom and device pixel ratio don't affect it.
 

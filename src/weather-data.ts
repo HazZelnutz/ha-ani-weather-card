@@ -158,7 +158,9 @@ export function processWeatherData(
 function processDevModeData(config: AnimatedWeatherCardConfig, currentDevCondition?: string): WeatherData {
     const currentCondition = currentDevCondition || "sunny";
     const temperatures = DEV_MODE_TEMPERATURES;
-    const temperature = (temperatures as Record<string, string>)[currentCondition] || "22";
+    const sample = (temperatures as Record<string, string>)[currentCondition] || "22";
+    // The samples are whole degrees; with a decimal they show the format chosen
+    const temperature = temperatureDecimals(config) ? formatLocalizedNumber(parseFloat(sample), undefined, 1) : sample;
     const location = config.name || "";  // Only show if name is provided
 
     // Dev mode attribute values
@@ -230,6 +232,14 @@ export function windBearingOf(raw: unknown): number | null {
 }
 
 /**
+ * The decimals the temperatures show (temperature_decimals): one, or none.
+ * Anything else YAML holds falls back to none.
+ */
+export function temperatureDecimals(config: AnimatedWeatherCardConfig): 0 | 1 {
+    return Number(config.temperature_decimals) === 1 ? 1 : 0;
+}
+
+/**
  * Process Home Assistant weather entity data
  */
 function processHomeAssistantData(hass: HomeAssistant, config: AnimatedWeatherCardConfig): WeatherData {
@@ -256,8 +266,11 @@ function processHomeAssistantData(hass: HomeAssistant, config: AnimatedWeatherCa
         temperatureValue = entity.attributes.temperature;
     }
 
+    // Whole degrees round as they always have; one decimal is the locale's own
+    const decimals = temperatureDecimals(config);
+    const formatTemperature = (n: number) => formatLocalizedNumber(decimals ? n : Math.round(n), hass, decimals);
     const temperature = temperatureValue != null && !isNaN(temperatureValue)
-        ? formatLocalizedNumber(Math.round(temperatureValue), hass)
+        ? formatTemperature(temperatureValue)
         : "--";
     const weatherCondition = conditionName(hass, entity);
 
@@ -348,7 +361,7 @@ function processHomeAssistantData(hass: HomeAssistant, config: AnimatedWeatherCa
     if (feelsLikeRaw !== undefined) {
         const n = typeof feelsLikeRaw === 'number' ? feelsLikeRaw : parseFloat(feelsLikeRaw as string);
         if (isFinite(n)) {
-            feelsLike = formatLocalizedNumber(Math.round(n), hass) + "°";
+            feelsLike = formatTemperature(n) + "°";
         }
     }
 
@@ -357,7 +370,7 @@ function processHomeAssistantData(hass: HomeAssistant, config: AnimatedWeatherCa
     if (config.indoor_temperature_entity) {
         const indoorTempSensor = hass.states[config.indoor_temperature_entity];
         if (indoorTempSensor && indoorTempSensor.state && !isNaN(parseFloat(indoorTempSensor.state))) {
-            indoorTemperature = formatLocalizedNumber(Math.round(parseFloat(indoorTempSensor.state)), hass) + "°";
+            indoorTemperature = formatTemperature(parseFloat(indoorTempSensor.state)) + "°";
         }
     }
 

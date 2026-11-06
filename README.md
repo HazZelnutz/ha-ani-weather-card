@@ -475,6 +475,7 @@ sunset_hour: 19
 | Option | Default | Description |
 | --- | --- | --- |
 | `compact` | `false` | One line about 88 px tall: the temperature and condition, with the location and "feels like" beside them. Two rows in the sections view |
+| `temperature_decimals` | `0` | `1` shows the temperature, "feels like" and the indoor temperature to one decimal, `21.5°`, in your language's format. `0` rounds them to whole degrees |
 | `show_location` | `true` | Show the location name |
 | `show_attributes` | `true` | Show the metric row: humidity, wind, pressure and sunset |
 | `show_attribute_labels` | `true` | Show the metric labels |

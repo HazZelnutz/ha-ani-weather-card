@@ -232,6 +232,8 @@ export interface AnimatedWeatherCardConfig {
     indoor_style?: 'label' | 'icon' | 'both';
     /** One line: the temperature and condition over the moving sky */
     compact?: boolean;
+    /** Temperatures to one decimal (1), or in whole degrees (0, the default) */
+    temperature_decimals?: number;
     show_sun?: boolean;
     animate?: boolean;
     auto_pause?: boolean;

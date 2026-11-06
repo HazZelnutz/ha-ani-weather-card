@@ -231,6 +231,12 @@ export class AnimatedWeatherCardEditor extends HTMLElement implements LovelaceCa
                 <span>Compact: one line, the temperature and condition over the sky</span>
               </label>
             </div>
+            <div class="option">
+              <label class="switch-label">
+                <ha-switch id="temperature_decimals" ${Number(this._config.temperature_decimals) === 1 ? 'checked' : ''}></ha-switch>
+                <span>Temperatures to one decimal: 21.5° rather than 22°</span>
+              </label>
+            </div>
 
             <div class="group-title">Show</div>
             <div class="option">
@@ -674,6 +680,10 @@ export class AnimatedWeatherCardEditor extends HTMLElement implements LovelaceCa
 
         this.querySelector('#compact')?.addEventListener('change', (e) => {
             this._updateConfig('compact', (e.target as HTMLInputElement).checked || undefined);
+        });
+        // Whole degrees are the default, so they don't need to be written out
+        this.querySelector('#temperature_decimals')?.addEventListener('change', (e) => {
+            this._updateConfig('temperature_decimals', (e.target as HTMLInputElement).checked ? 1 : undefined);
         });
         this.querySelector('#show_location')?.addEventListener('change', (e) => {
 

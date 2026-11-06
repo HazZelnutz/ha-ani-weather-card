@@ -9,11 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Temperatures to one decimal: `temperature_decimals: 1` shows the temperature, "feels like" and the indoor temperature as 21.5°, in your language's format. It's a switch in the editor's Display section.
 - A bug report on GitHub starts from a form that asks for what it takes to fix it: the card and Home Assistant versions, the browser or app, the card's YAML and a screenshot. Ideas have a form of their own, and questions point to the setup guide's troubleshooting.
 
 ### Changed
 
 - The README's HACS badge says Default instead of Custom, now that the card is in HACS's default store.
+
+### Fixed
+
+- A compact strip too narrow for the condition shrinks its temperature to keep the condition whole, instead of cutting it to a letter or two.
+- "Feels like" from the weather entity now updates when it changes on its own, and so does a pressure in inHg that moves only after the decimal point. Both waited for another value to change.
 
 ## [1.1.1] - 2026-11-02
 

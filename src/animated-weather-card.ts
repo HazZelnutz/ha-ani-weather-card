@@ -1013,12 +1013,12 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
             // Data-only changes: update text values in-place without touching DOM structure or animations
             let dataChanged = false;
 
-            // Compare attributes by their displayed-value projection. Use a
-            // sentinel for missing attributes so a legitimate 0 (calm wind,
-            // 0% humidity) doesn't read as "unchanged" against undefined.
-            const project = (v: unknown): string | number =>
-                v == null ? '__missing__' : (typeof v === 'number' ? Math.round(v) : String(v));
-            const attrs = ['temperature', 'humidity', 'wind_speed', 'pressure', 'wind_bearing', 'friendly_name'] as const;
+            // Compare the attributes as they are: what's shown can carry a
+            // decimal (a temperature, inHg), and the update only touches text
+            // that changed. A sentinel for missing attributes keeps a real 0
+            // (calm wind, 0% humidity) from reading as "unchanged".
+            const project = (v: unknown): string => v == null ? '__missing__' : String(v);
+            const attrs = ['temperature', 'apparent_temperature', 'humidity', 'wind_speed', 'pressure', 'wind_bearing', 'friendly_name'] as const;
             for (const a of attrs) {
                 if (project(oldEntity.attributes[a]) !== project(newEntity.attributes[a])) {
                     dataChanged = true;
@@ -1559,13 +1559,16 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
 
         // The regular hero is a column that the frame can cut off at the
         // bottom; the compact one is a single row of ellipsized text, where
-        // only the strip itself overflowing matters (the numerals' glyphs
-        // overhang their line box, which isn't clipping).
+        // the strip itself overflowing matters (the numerals' glyphs overhang
+        // their line box, which isn't clipping), and so does the condition
+        // being cut short: a narrow strip shrinks the temperature to keep it.
         const compact = card.dataset.variant === 'compact';
+        const condition = compact ? card.querySelector('.weather-desc') as HTMLElement | null : null;
         const note = card.querySelector('.weather-note') as HTMLElement | null;
         // A note is shown whole or not at all: one its clamp cuts short doesn't fit
         const overflows = () => info.scrollHeight > info.clientHeight + 1
             || (!compact && !!hero && hero.scrollHeight > hero.clientHeight + 1)
+            || (!!condition && condition.scrollWidth > condition.clientWidth + 1)
             || (!!note && !note.hidden && note.scrollHeight > note.clientHeight + 1);
         if (!note || note.hidden) {
             delete card.dataset.note;

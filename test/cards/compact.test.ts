@@ -57,6 +57,22 @@ describe('compact weather card', () => {
         expect(card.getCardSize()).toBe(2);
     });
 
+    it('shrinks the temperature in a narrow strip to keep the condition whole', async () => {
+        const sky = await mount({ compact: true });
+        const condition = sky.querySelector('.weather-desc') as HTMLElement;
+        // Room for "Partly cloudy" only once the temperature is at its tight size
+        const room: Record<string, number> = { regular: 40, compact: 40, short: 70, tight: 110, minimal: 110 };
+        Object.defineProperty(condition, 'clientWidth', { configurable: true, get: () => room[sky.dataset.height ?? 'regular'] });
+        Object.defineProperty(condition, 'scrollWidth', { configurable: true, get: () => 98 });
+        (card as unknown as { applySizeState(): void }).applySizeState();
+        expect(sky.dataset.height).toBe('tight');
+
+        // With room for it, the temperature keeps its full size
+        Object.defineProperty(condition, 'clientWidth', { configurable: true, get: () => 160 });
+        (card as unknown as { applySizeState(): void }).applySizeState();
+        expect(sky.dataset.height).toBe('regular');
+    });
+
     it('keeps the regular card as it was', async () => {
         const sky = await mount({});
         expect(sky.dataset.variant).toBeUndefined();
