@@ -454,6 +454,17 @@ export interface CustomCardDefinition {
     readonly preview: boolean;
     readonly documentationURL: string;
     readonly version?: string;
+    /**
+     * The card picker's suggestions for an entity someone picked (Home
+     * Assistant 2026.6 and later): one, several with labels, or null
+     */
+    readonly getEntitySuggestion?: (hass: HomeAssistant, entityId: string) => CardSuggestion | CardSuggestion[] | null;
+}
+
+/** A card the picker suggests: its config, and a label after its name when there are several */
+export interface CardSuggestion {
+    config: Record<string, unknown> & { type: string };
+    label?: string;
 }
 
 /**

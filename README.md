@@ -150,18 +150,21 @@ To update a manual install, overwrite the files and raise the `?v=` number in th
 
 ## Set up
 
-1. Edit your dashboard, select **Add card** and search for **Animated Weather Card**.
-2. Pick your weather entity. That's enough to start.
+1. Edit your dashboard, select **Add card** and search for **Animated Weather Card**. It starts on your weather entity and `sun.sun`.
+2. If you have more than one weather entity, pick the one you want. That's enough to start.
 3. Adjust the rest in the editor's sections:
    - **Entities**
    - **Display**
+   - **Interactions**
    - **Weather note**
    - **Day and night**
    - **Advanced**
    - **Weather engine**
    - **Colors**
 
-For the sun tracker, search for **Animated Sun Tracker** and pick `sun.sun`.
+For the sun tracker, search for **Animated Sun Tracker**. It starts on `sun.sun`, with your moon sensor if you have one.
+
+In Home Assistant 2026.6 and later, the **By entity** tab suggests both cards too: pick your weather entity, or `sun.sun`, and they're under **Community**, regular and compact.
 
 Or in YAML:
 

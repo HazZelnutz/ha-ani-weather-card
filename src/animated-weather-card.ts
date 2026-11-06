@@ -70,6 +70,11 @@ const NOTE_TYPE_MS_PER_CHAR = 18;
 const NOTE_TYPE_MIN_MS = 450;
 const NOTE_TYPE_MAX_MS = 1600;
 
+/** A weather card for an entity, with the next sunset when Home Assistant has sun.sun */
+function weatherCardConfig(entity: string, hass?: HomeAssistant): AnimatedWeatherCardConfig {
+    return hass?.states['sun.sun'] ? { entity, sun_entity: 'sun.sun' } : { entity };
+}
+
 /** How long the old weather takes to fade out on a condition change (matches .condition-out in card.ts). */
 const CONDITION_FADE_OUT_MS = 400;
 /** Hero value fade-through: out, swap, then in with a small rise */
@@ -156,8 +161,16 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
     private noteComing: NoteStage | false = false;
     /** A note typing itself in (see typeIn) */
     private noteTyping?: { text: string; finish(): void };
-    static getStubConfig(): AnimatedWeatherCardConfig {
-        return DEFAULT_CONFIG;
+    /**
+     * A card from the card picker starts on your own weather: the first
+     * weather entity not on the dashboard yet, else one that is, else
+     * Met.no's default name (the editor then asks for one). Home Assistant
+     * passes the unused entities, then the used ones. With sun.sun, the
+     * metric row has the next sunset.
+     */
+    static getStubConfig(hass?: HomeAssistant, entities: string[] = [], entitiesFallback: string[] = []): AnimatedWeatherCardConfig {
+        const ids = [...entities, ...entitiesFallback, ...Object.keys(hass?.states ?? {})];
+        return weatherCardConfig(ids.find(id => id.startsWith('weather.')) ?? DEFAULT_CONFIG.entity!, hass);
     }
 
     /** The gestures' actions, against the weather entity. None in dev mode, which has no real entity */
@@ -1655,8 +1668,14 @@ window.customCards.push({
     type: 'animated-weather-card',
     name: 'Animated Weather Card',
     description: 'The weather as a moving sky that follows the sun, with the temperature, feels like, wind, humidity, pressure and sunset',
-    preview: false,
-    documentationURL: 'https://github.com/alexsto1an/ha-ani-weather-card'
+    // The card picker shows it moving, on the stub's weather
+    preview: true,
+    documentationURL: 'https://github.com/alexsto1an/ha-ani-weather-card',
+    // Home Assistant 2026.6 and later suggest it for a weather entity, under Community
+    getEntitySuggestion: (hass, entityId) => entityId.startsWith('weather.') ? [
+        { label: 'Regular', config: { type: 'custom:animated-weather-card', ...weatherCardConfig(entityId, hass) } },
+        { label: 'Compact', config: { type: 'custom:animated-weather-card', ...weatherCardConfig(entityId, hass), compact: true } },
+    ] : null,
 });
 
 // The banner, once per page, in the card's own colours: its name on a clear

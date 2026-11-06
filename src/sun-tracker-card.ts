@@ -71,6 +71,19 @@ function moonPhaseToIcon(phase: string): string {
     return `mdi:moon-${phase.replace(/_moon$/, '').replace(/_/g, '-')}`;
 }
 
+/**
+ * A tracker for a sun entity, with the moon when Home Assistant has a sensor
+ * in one of the eight phases (the Moon integration's, or any other).
+ * Without Home Assistant to look in, the Moon integration's usual name.
+ */
+function trackerConfig(sunEntity: string, hass?: HomeAssistant): SunTrackerConfig {
+    const isMoon = (id: string) => id.startsWith('sensor.') && lookup(MOON_PHASE_NAMES, hass!.states[id]?.state) !== undefined;
+    const moon = !hass ? 'sensor.moon_phase'
+        : isMoon('sensor.moon_phase') ? 'sensor.moon_phase'
+        : Object.keys(hass.states).find(isMoon);
+    return moon ? { sun_entity: sunEntity, moon_entity: moon } : { sun_entity: sunEntity };
+}
+
 // ── Sun path geometry (SVG user units; the SVG stretches to the card) ──
 const VW = 1000;
 const VH = 300;
@@ -643,8 +656,14 @@ class AnimatedSunTrackerCard extends HTMLElement {
     static getConfigElement() {
         return document.createElement('animated-sun-tracker-editor');
     }
-    static getStubConfig() {
-        return { sun_entity: 'sun.sun', moon_entity: 'sensor.moon_phase' };
+    /**
+     * A card from the card picker starts on your own sun, and your moon
+     * sensor when you have one. Home Assistant passes the unused entities,
+     * then the used ones.
+     */
+    static getStubConfig(hass?: HomeAssistant, entities: string[] = [], entitiesFallback: string[] = []): SunTrackerConfig {
+        const ids = [...entities, ...entitiesFallback, ...Object.keys(hass?.states ?? {})];
+        return trackerConfig(ids.find(id => id.startsWith('sun.')) ?? 'sun.sun', hass);
     }
 
     private _getSunData(): (SunData & { rising: boolean }) | null {
@@ -1009,11 +1028,17 @@ class AnimatedSunTrackerEditor extends HTMLElement {
 customElements.define('animated-sun-tracker-card', AnimatedSunTrackerCard);
 customElements.define('animated-sun-tracker-editor', AnimatedSunTrackerEditor);
 
-(window as any).customCards = (window as any).customCards || [];
-(window as any).customCards.push({
+window.customCards = window.customCards || [];
+window.customCards.push({
     type: 'animated-sun-tracker-card',
     name: 'Animated Sun Tracker',
     description: 'The sun\'s path through the day with the next sunrise or sunset, first and last light, solar noon, daylight and moon phase',
-    preview: false,
-    documentationURL: 'https://github.com/alexsto1an/ha-ani-weather-card'
+    // The card picker shows it, on the stub's sun
+    preview: true,
+    documentationURL: 'https://github.com/alexsto1an/ha-ani-weather-card',
+    // Home Assistant 2026.6 and later suggest it for the sun entity, under Community
+    getEntitySuggestion: (hass, entityId) => entityId.startsWith('sun.') ? [
+        { label: 'Regular', config: { type: 'custom:animated-sun-tracker-card', ...trackerConfig(entityId, hass) } },
+        { label: 'Compact', config: { type: 'custom:animated-sun-tracker-card', ...trackerConfig(entityId, hass), compact: true } },
+    ] : null,
 });
