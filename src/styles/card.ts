@@ -223,7 +223,8 @@ ${iconBoxCss('animated-weather-card')}
         }
         .animated-weather-card.theme-colors .sky { display: none; }
         /* Without a sky behind them, blurred translucent clouds read as
-           smudges; draw them as faint, crisp shapes instead */
+           smudges; draw them as faint, crisp shapes instead (their masks
+           are crisp; the filter is for clouds without a canvas) */
         .animated-weather-card.theme-colors .cloud-gsap {
           opacity: 0.16 !important;
           filter: none !important;

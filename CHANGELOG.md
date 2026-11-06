@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- On iPhones and iPads, a cloud could carry a thin dark line down its right side, in the sky palette. Safari's blur drew it into the cloud. Each part of a cloud is now blurred once, through a mask drawn on a canvas, and looks as it did. On a Mac, Safari's clouds come out a touch crisper, as they are in other browsers.
 - A compact strip too narrow for the condition shrinks its temperature to keep the condition whole, instead of cutting it to a letter or two.
 - "Feels like" from the weather entity now updates when it changes on its own, and so does a pressure in inHg that moves only after the decimal point. Both waited for another value to change.
 

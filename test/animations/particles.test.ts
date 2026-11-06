@@ -3,7 +3,7 @@ import { ParticlePool, prewarm } from '../../src/particle-pool';
 import { RainAnimation, RAIN_SPEED, RAIN_POOL_SIZE, RAIN_REBOUND_RISE, rainPoolSize, quadraticLength } from '../../src/rain-animation';
 import { SnowAnimation, SNOW_SPEED, snowPoolSize } from '../../src/snow-animation';
 import { SleetAnimation } from '../../src/sleet-animation';
-import { createGSAPCloud, createGSAPSwoosh, CLOUD_LAYERS, driftWindFactor, removeClouds } from '../../src/gsap-effects';
+import { createGSAPCloud, createGSAPSwoosh, CLOUD_LAYERS, driftWindFactor, removeClouds, cloudShape, cloudPartMask } from '../../src/gsap-effects';
 import { WindAnimation, MAX_LEAVES, MAX_SWOOSHES, LEAF_GAP_MS } from '../../src/wind-animation';
 import { LightningAnimation, LIGHTNING_FIRST_FLASH_MS, LIGHTNING_INTERVAL_MS, LIGHTNING_JOLT_DELAY_SEC } from '../../src/lightning-animation';
 import { pauseCardGSAPAnimations, resumeCardGSAPAnimations } from '../../src/utils';
@@ -337,6 +337,84 @@ describe('clouds', () => {
             expect(to.x).toBeGreaterThanOrEqual(parseFloat(cloud.style.width));
         }
         host.remove();
+    });
+
+    it('keeps the cloud\'s outline: a pill-shaped body with two round puffs on it', () => {
+        expect(cloudShape(1)).toEqual({
+            width: 70, height: 26,
+            puffs: [{ x: 9, y: -22, size: 44 }, { x: 26, y: -13, size: 35 }],
+        });
+        // Whole pixels at any size, the right puff 9px in from the body's right edge
+        const big = cloudShape(1.38);
+        expect(big.puffs[1].x + big.puffs[1].size + Math.round(9 * 1.38)).toBe(big.width);
+    });
+
+    /** The body and the two puffs of each cloud, with what draws them */
+    const cloudParts = (card: HTMLElement) => Array.from(card.querySelectorAll('.cloud-gsap')).map(cloud => ({
+        cloud: cloud as HTMLElement,
+        parts: Array.from(cloud.children) as HTMLElement[],
+    }));
+
+    it('blurs each part through a mask of its own, never a CSS filter, so a puff still shows on the body', () => {
+        const host = makeCard();
+        const card = host.querySelector('.animated-weather-card') as HTMLElement;
+        createGSAPCloud(card, { windSpeed: 2, cloudBaseSize: 1, cloudCount: 3 }, 3, card, {});
+        const clouds = cloudParts(card);
+        expect(clouds.length).toBeGreaterThan(0);
+        for (const { cloud, parts } of clouds) {
+            const layer = CLOUD_LAYERS.find(l => cloud.className.includes(l.name))!;
+            const reach = Math.ceil(layer.blur * 3) + 1;
+            expect(cloud.classList.contains('cloud-masked')).toBe(true);
+            expect(cloud.style.filter).toBe('');
+            expect(cloud.style.background).toBe('');
+            expect(parts).toHaveLength(3);
+            // The body first, its blur reaching past it on every side
+            expect(parts[0].style.left).toBe(`${-reach}px`);
+            expect(parseFloat(parts[0].style.width)).toBe(parseFloat(cloud.style.width) + 2 * reach);
+            for (const part of parts) {
+                expect(part.style.getPropertyValue('mask-image')).toMatch(/^url\("data:image\/png/);
+                expect(part.style.getPropertyValue('-webkit-mask-image')).toBe(part.style.getPropertyValue('mask-image'));
+                expect(part.style.background).toMatch(/^var\(--awc-cloud-/);
+            }
+        }
+        host.remove();
+    });
+
+    it('draws theme clouds crisp', () => {
+        const host = makeCard();
+        const card = host.querySelector('.animated-weather-card') as HTMLElement;
+        createGSAPCloud(card, { windSpeed: 2, cloudBaseSize: 1, cloudCount: 3 }, 3, card, { color_palette: 'theme' });
+        for (const { parts } of cloudParts(card)) {
+            expect(parts[0].style.left).toBe('0px');
+            expect(parts[0].style.top).toBe('0px');
+        }
+        host.remove();
+    });
+
+    it('falls back to CSS blur where there\'s no canvas to draw a mask on', () => {
+        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+        const host = makeCard();
+        const card = host.querySelector('.animated-weather-card') as HTMLElement;
+        // A size no other test draws, so no mask is already kept
+        createGSAPCloud(card, { windSpeed: 2, cloudBaseSize: 0.77, cloudCount: 3 }, 3, card, {});
+        for (const { cloud, parts } of cloudParts(card)) {
+            expect(cloud.classList.contains('cloud-masked')).toBe(false);
+            expect(cloud.style.filter).toMatch(/^blur\(/);
+            expect(cloud.style.background).toMatch(/^var\(--awc-cloud-/);
+            expect(parts).toHaveLength(2);
+        }
+        getContext.mockRestore();
+        host.remove();
+    });
+
+    it('draws each mask once, at the screen\'s resolution', () => {
+        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext');
+        const first = cloudPartMask(51, 19, 1.5, 2);
+        const drawn = getContext.mock.calls.length;
+        expect(first).toBe(`data:image/png;base64,${(51 + 2 * 6) * 2}x${(19 + 2 * 6) * 2}`);
+        expect(cloudPartMask(51, 19, 1.5, 2)).toBe(first);
+        expect(getContext.mock.calls.length).toBe(drawn);
+        getContext.mockRestore();
     });
 
     it('removes clouds together with their tracks', () => {

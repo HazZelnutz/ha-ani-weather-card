@@ -149,6 +149,91 @@ export function driftWindFactor(windSpeed: number): number {
 /** Room past a cloud's edge for its blur, so it's fully out of sight off-card. */
 const CLOUD_BLUR_PAD_PX = 12;
 
+/**
+ * A cloud's outline at a size, in whole CSS pixels: a pill-shaped body, and
+ * two round puffs on it, placed from the body's top left (a puff's y is
+ * negative, above the body).
+ */
+export interface CloudShape {
+    width: number;
+    height: number;
+    puffs: ReadonlyArray<{ x: number; y: number; size: number }>;
+}
+
+export function cloudShape(size: number): CloudShape {
+    const width = Math.round(70 * size);
+    const right = Math.round(35 * size);
+    return {
+        width,
+        height: Math.round(26 * size),
+        puffs: [
+            { x: Math.round(9 * size), y: Math.round(-22 * size), size: Math.round(44 * size) },
+            { x: width - Math.round(9 * size) - right, y: Math.round(-13 * size), size: right },
+        ],
+    };
+}
+
+/** How far a blur reaches past what it blurs, with a pixel to spare. */
+const blurReach = (blur: number) => blur > 0 ? Math.ceil(blur * 3) + 1 : 0;
+
+const partMasks = new Map<string, string>();
+
+/**
+ * One part of a cloud (its body or a puff: a box with 50px corners, so a
+ * pill or a circle), blurred, as an image to mask it with. It's filled
+ * solid on one canvas, then drawn onto another through its shadow alone,
+ * whose blur is a Gaussian of half shadowBlur, as CSS blur() is of its
+ * value. CSS's filter drew the same, but an iPhone could leave a dark
+ * column inside the blurred image, at its right edge. Masks are kept, as
+ * clouds come in a few sizes. Null where there's no canvas to draw on.
+ */
+export function cloudPartMask(width: number, height: number, blur: number, dpr: number): string | null {
+    const key = [width, height, blur, dpr].join(',');
+    const kept = partMasks.get(key);
+    if (kept) return kept;
+    const reach = blurReach(blur);
+    // In device pixels throughout: a shadow's blur and offset ignore any scale
+    const w = Math.ceil((width + 2 * reach) * dpr);
+    const h = Math.ceil((height + 2 * reach) * dpr);
+    const canvas = (): [HTMLCanvasElement, CanvasRenderingContext2D | null] => {
+        const el = document.createElement('canvas');
+        el.width = w;
+        el.height = h;
+        return [el, el.getContext('2d')];
+    };
+
+    let url: string | null = null;
+    const [solid, ctx] = canvas();
+    if (ctx) {
+        const [x, y, r] = [reach * dpr, reach * dpr, Math.min(50, width / 2, height / 2) * dpr];
+        const [right, bottom] = [x + width * dpr, y + height * dpr];
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(right, y, right, bottom, r);
+        ctx.arcTo(right, bottom, x, bottom, r);
+        ctx.arcTo(x, bottom, x, y, r);
+        ctx.arcTo(x, y, right, y, r);
+        ctx.closePath();
+        ctx.fill();
+        if (blur > 0) {
+            const [blurred, out] = canvas();
+            if (out) {
+                // The part lands a canvas to the left, out of the image; only its shadow lands on it
+                out.shadowColor = '#000';
+                out.shadowBlur = 2 * blur * dpr;
+                out.shadowOffsetX = w;
+                out.drawImage(solid, -w, 0);
+                url = blurred.toDataURL();
+            }
+        } else {
+            url = solid.toDataURL();
+        }
+    }
+    if (url) partMasks.set(key, url);
+    return url;
+}
+
 /** Remove every cloud and its track, and stop them moving. */
 export function removeClouds(root: ParentNode): void {
     root.querySelectorAll('.cloud-track, .cloud-gsap').forEach(el => {
@@ -197,59 +282,69 @@ export function createGSAPCloud(cloudLayer: Element, settings: any, cloudCount: 
             const baseCloudSize = settings.cloudBaseSize * layer.scale;
             const sizeVariation = 1 + ((i - 1) * 0.15);
             const actualSize = Math.max(0.3, Math.min(2.5, baseCloudSize)) * sizeVariation * heightScale;
+            const shape = cloudShape(actualSize);
 
-            // Base cloud dimensions
-            const baseWidth = 70;
-            const baseHeight = 26;
-            const beforeWidth = 44;
-            const beforeHeight = 44;
-            const afterWidth = 35;
-            const afterHeight = 35;
-
-            // Apply size multiplier
-            const width = Math.round(baseWidth * actualSize);
-            const height = Math.round(baseHeight * actualSize);
-
-            // Set cloud styling with parallax effects
             cloud.style.position = 'absolute';
-            cloud.style.width = width + 'px';
-            cloud.style.height = height + 'px';
-            cloud.style.borderRadius = '50px';
             cloud.style.opacity = layer.opacity.toString();
             cloud.style.zIndex = (10 + layerIndex).toString();
-            
-            // Apply blur for depth effect
-            if (layer.blur > 0) {
-                cloud.style.filter = `blur(${layer.blur}px)`;
-            }
-            
+
             // Far clouds are dimmer and cooler, near clouds brightest. The
             // tints come from the sky (condition, time of day, palette).
             const cloudColor = ['var(--awc-cloud-far)', 'var(--awc-cloud-mid)', 'var(--awc-cloud-near)'][layerIndex];
-            
-            cloud.style.background = cloudColor;
 
-            // Create before pseudo-element as real element
-            const beforeElement = document.createElement('div');
-            beforeElement.style.position = 'absolute';
-            beforeElement.style.width = Math.round(beforeWidth * actualSize) + 'px';
-            beforeElement.style.height = Math.round(beforeHeight * actualSize) + 'px';
-            beforeElement.style.top = Math.round(-22 * actualSize) + 'px';
-            beforeElement.style.left = Math.round(9 * actualSize) + 'px';
-            beforeElement.style.borderRadius = '50px';
-            beforeElement.style.background = cloudColor;
-            cloud.appendChild(beforeElement);
-
-            // Create after pseudo-element as real element
-            const afterElement = document.createElement('div');
-            afterElement.style.position = 'absolute';
-            afterElement.style.width = Math.round(afterWidth * actualSize) + 'px';
-            afterElement.style.height = Math.round(afterHeight * actualSize) + 'px';
-            afterElement.style.top = Math.round(-13 * actualSize) + 'px';
-            afterElement.style.right = Math.round(9 * actualSize) + 'px';
-            afterElement.style.borderRadius = '50px';
-            afterElement.style.background = cloudColor;
-            cloud.appendChild(afterElement);
+            // Farther clouds are softer. Theme clouds are crisp: without a
+            // sky behind them, a blurred cloud reads as a smudge.
+            const blur = config?.color_palette === 'theme' ? 0 : layer.blur;
+            // The body, then the puffs over it, each translucent, so a puff
+            // shows faintly where it overlaps the body
+            const parts = [
+                { x: 0, y: 0, width: shape.width, height: shape.height },
+                ...shape.puffs.map(p => ({ x: p.x, y: p.y, width: p.size, height: p.size })),
+            ];
+            const dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+            const masks = parts.map(p => cloudPartMask(p.width, p.height, blur, dpr));
+            const masked = masks.every(Boolean);
+            const reach = masked ? blurReach(blur) : 0;
+            // The cloud's box is its body, as the track places it
+            cloud.style.width = shape.width + 'px';
+            cloud.style.height = shape.height + 'px';
+            if (masked) {
+                // Each part blurred by its mask, its colour showing through
+                cloud.classList.add('cloud-masked');
+                parts.forEach((p, n) => {
+                    const el = document.createElement('div');
+                    el.style.position = 'absolute';
+                    el.style.left = p.x - reach + 'px';
+                    el.style.top = p.y - reach + 'px';
+                    el.style.width = p.width + 2 * reach + 'px';
+                    el.style.height = p.height + 2 * reach + 'px';
+                    el.style.background = cloudColor;
+                    for (const prefix of ['-webkit-', '']) {
+                        el.style.setProperty(`${prefix}mask-image`, `url("${masks[n]}")`);
+                        el.style.setProperty(`${prefix}mask-size`, '100% 100%');
+                        el.style.setProperty(`${prefix}mask-repeat`, 'no-repeat');
+                    }
+                    cloud.appendChild(el);
+                });
+            } else {
+                // No canvas: the body and its puffs, blurred by CSS
+                cloud.style.borderRadius = '50px';
+                cloud.style.background = cloudColor;
+                if (blur > 0) cloud.style.filter = `blur(${blur}px)`;
+                for (const puff of shape.puffs) {
+                    const el = document.createElement('div');
+                    el.style.position = 'absolute';
+                    el.style.left = puff.x + 'px';
+                    el.style.top = puff.y + 'px';
+                    el.style.width = puff.size + 'px';
+                    el.style.height = puff.size + 'px';
+                    el.style.borderRadius = '50px';
+                    el.style.background = cloudColor;
+                    cloud.appendChild(el);
+                }
+            }
+            // How wide the cloud draws, its blur included
+            const extent = shape.width + 2 * reach;
 
             // Parallax positioning - different heights and depths
             const heightVariations = [
@@ -261,7 +356,7 @@ export function createGSAPCloud(cloudLayer: Element, settings: any, cloudCount: 
             const topPosition = heightVariations[layerIndex][i - 1] || (15 + layerIndex * 10);
             
             // Start and end fully outside the card, by this much
-            const margin = Math.max(150 + layerIndex * 50, width + CLOUD_BLUR_PAD_PX);
+            const margin = Math.max(150 + layerIndex * 50, extent + CLOUD_BLUR_PAD_PX);
             const speed = layer.speed * windFactor * (0.9 + Math.random() * 0.2);
             const duration = (cardWidth + 2 * margin) / speed;
 
