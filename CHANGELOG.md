@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A bug report on GitHub starts from a form that asks for what it takes to fix it: the card and Home Assistant versions, the browser or app, the card's YAML and a screenshot. Ideas have a form of their own, and questions point to the setup guide's troubleshooting.
+
 ### Changed
 
 - The README's HACS badge says Default instead of Custom, now that the card is in HACS's default store.

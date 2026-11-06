@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Setup guide and troubleshooting
+    url: https://alexsto1an.github.io/ha-ani-weather-card/setup/#troubleshooting
+    about: Installing, your first card, the weather note, and fixes for the usual problems.
+  - name: Live demo
+    url: https://alexsto1an.github.io/ha-ani-weather-card/
+    about: Try every condition, time of day and option in your browser, without installing anything.
