@@ -45,6 +45,7 @@ import type { NoteWriter, NoteStage } from './note-generator';
 import { processWeatherData, readNote, noteExpiresAt, WeatherNote } from './weather-data';
 import { localizeString, formatTime, timeHtml, localeKey } from './localize';
 import { ActionsConfig, bindActions, readActions, syncActionTarget } from './actions';
+import { loadEditorBundle, loadSiblingBundle } from './bundles';
 // Sky palettes (condition × time of day) and their animatable properties
 import { registerSkyProperties, skyPhaseFromSun, SkyPhase, skyColors, SKY_TEXT, oklchToSrgb, toHex } from './sky';
 // Import color utilities
@@ -578,7 +579,7 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
             this.noteWriter.start();
             return;
         }
-        AnimatedWeatherCard.loadSiblingBundle('animated-weather-card-note', () => !!window.AnimatedWeatherCardNote)
+        loadSiblingBundle('animated-weather-card-note', () => !!window.AnimatedWeatherCardNote)
             .then(() => {
                 if (this.isConnected) this.mountNoteWriter();
             })
@@ -741,7 +742,7 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
             this.devPanel.mount();
             return;
         }
-        AnimatedWeatherCard.loadSiblingBundle('animated-weather-card-dev', () => !!window.AnimatedWeatherCardDevPanel)
+        loadSiblingBundle('animated-weather-card-dev', () => !!window.AnimatedWeatherCardDevPanel)
             .then(() => {
                 if (this.isConnected) this.mountDevPanel();
             })
@@ -1290,7 +1291,7 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
 
         const Planes = window.AnimatedWeatherCardPlanes;
         if (!Planes) {
-            AnimatedWeatherCard.loadSiblingBundle('animated-weather-card-planes', () => !!window.AnimatedWeatherCardPlanes)
+            loadSiblingBundle('animated-weather-card-planes', () => !!window.AnimatedWeatherCardPlanes)
                 .then(() => {
                     if (this.planesWanted && this.isConnected) this.startPlanes();
                 })
@@ -1619,45 +1620,8 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
      * only when actually needed.
      */
     static async getConfigElement(): Promise<HTMLElement> {
-        if (!customElements.get('animated-weather-card-editor')) {
-            await AnimatedWeatherCard.loadSiblingBundle('animated-weather-card-editor',
-                () => !!customElements.get('animated-weather-card-editor'));
-        }
+        if (!customElements.get('animated-weather-card-editor')) await loadEditorBundle();
         return document.createElement('animated-weather-card-editor');
-    }
-
-    private static bundleLoads = new Map<string, Promise<void>>();
-
-    /**
-     * Load another of this card's bundles (the editor, the dev panel) from
-     * the folder the main bundle was loaded from, once.
-     */
-    private static loadSiblingBundle(name: string, isReady: () => boolean): Promise<void> {
-        const pending = AnimatedWeatherCard.bundleLoads.get(name);
-        if (pending) return pending;
-        const load = new Promise<void>((resolve, reject) => {
-            // Find the main bundle's <script> tag so we can resolve the other
-            // bundle's URL relative to it (keeping its ?v= cache buster).
-            // Falls back to a same-dir relative URL if detection fails.
-            const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[];
-            const main = scripts.find(s => /animated-weather-card(?:\.min)?\.js/.test(s.src));
-            const url = main
-                ? main.src.replace(/animated-weather-card(\.min)?\.js/, `${name}$1.js`)
-                : `${name}.js`;
-
-            const script = document.createElement('script');
-            script.src = url;
-            script.type = 'module';
-            script.async = true;
-            // Both bundles register themselves synchronously when they run
-            script.onload = () => isReady() ? resolve() : reject(new Error(`${url} loaded but registered nothing`));
-            script.onerror = () => reject(new Error(`Failed to load ${url}`));
-            document.head.appendChild(script);
-        });
-        // A failed load can be retried later (e.g. after a network blip)
-        load.catch(() => AnimatedWeatherCard.bundleLoads.delete(name));
-        AnimatedWeatherCard.bundleLoads.set(name, load);
-        return load;
     }
 }
 

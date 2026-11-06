@@ -102,7 +102,7 @@ The card ships as five files that sit in the same folder:
 | File | What it is |
 | --- | --- |
 | `animated-weather-card.js` | Both cards. This is the only dashboard resource you add. |
-| `animated-weather-card-editor.js` | The visual editor. It loads the first time you open the card's settings. |
+| `animated-weather-card-editor.js` | The visual editors for both cards. It loads the first time you open a card's settings. |
 | `animated-weather-card-note.js` | The note writer. It loads only for cards that write their own note (`show_note`). |
 | `animated-weather-card-planes.js` | The planes. It loads only for cards with a flights sensor (`flights_entity`). |
 | `animated-weather-card-dev.js` | The developer panel. It loads only for cards with `dev_mode: true`, so a manual install can leave it out. |
@@ -680,9 +680,10 @@ To try a change in Home Assistant, copy the five `.js` files to `config/www/` an
 ```
 src/
 ├── animated-weather-card.ts        # The weather card
-├── sun-tracker-card.ts             # The sun tracker card and its editor
+├── sun-tracker-card.ts             # The sun tracker card
 ├── animated-weather-card-editor.ts # Entry point of the editor bundle
 ├── config-editor.ts                # Visual editor for the weather card
+├── sun-tracker-editor.ts           # Visual editor for the sun tracker
 ├── animated-weather-card-dev.ts    # Entry point of the developer panel bundle
 ├── dev-panel.ts                    # Developer panel (dev_mode)
 ├── animated-weather-card-note.ts   # Entry point of the note writer bundle

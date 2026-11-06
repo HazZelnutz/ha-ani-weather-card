@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - A weather card added from the card list starts on your weather entity and `sun.sun`, and takes its location from the entity's name. It used to start on `weather.forecast_home`, named "Weather", with every option written out. A sun tracker starts with your moon sensor, if you have one.
+- The sun tracker's visual editor now comes with the weather card's, in `animated-weather-card-editor.js`, which loads the first time you open either card's settings. With it out of the main file, `animated-weather-card.js` stays about 76 KB gzipped with everything this release adds.
 - The README's HACS badge says Default instead of Custom, now that the card is in HACS's default store.
 
 ### Fixed
