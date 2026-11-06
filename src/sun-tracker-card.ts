@@ -655,7 +655,7 @@ class AnimatedSunTrackerCard extends HTMLElement {
 
     /** The editor comes in the editor bundle, loaded the first time it's needed */
     static async getConfigElement(): Promise<HTMLElement> {
-        if (!customElements.get('animated-sun-tracker-editor')) await loadEditorBundle();
+        if (!customElements.get('animated-sun-tracker-editor')) await loadEditorBundle('animated-sun-tracker-editor');
         return document.createElement('animated-sun-tracker-editor');
     }
 

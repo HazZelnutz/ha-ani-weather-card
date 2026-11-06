@@ -493,7 +493,7 @@ sunset_hour: 19
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `tap_action` | more-info | What a tap on the weather does. Takes Home Assistant's [card actions](https://www.home-assistant.io/dashboards/actions/): `more-info`, `navigate`, `url`, `perform-action`, `assist` or `none`. By default it opens the weather entity's details |
+| `tap_action` | `more-info` | What a tap on the weather does. Takes Home Assistant's [card actions](https://www.home-assistant.io/dashboards/actions/): `more-info`, `navigate`, `url`, `perform-action`, `assist` or `none`. By default it opens the weather entity's details |
 | `hold_action` | `none` | What a press of half a second or more does |
 | `double_tap_action` | `none` | What a double tap does. With it set, a single tap waits a quarter of a second to tell the two apart |
 
@@ -567,7 +567,7 @@ Set these under `custom_colors:`. Leave one out to keep the built-in colour.
 | `show_header` | `true` | Show the next sunrise or sunset and the time until it |
 | `show_details` | `true` | Show first and last light, solar noon, daylight and the moon phase |
 | `color_palette` | `default` | `default` for the sky, or `theme` for your dashboard's colours |
-| `tap_action` | more-info | What a tap does. By default it opens the sun entity's details. Takes the same actions as the weather card |
+| `tap_action` | `more-info` | What a tap does. By default it opens the sun entity's details. Takes the same actions as the weather card |
 | `hold_action` | `none` | What a press of half a second or more does |
 | `double_tap_action` | `none` | What a double tap does |
 

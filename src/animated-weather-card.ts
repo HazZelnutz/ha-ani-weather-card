@@ -1620,7 +1620,7 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
      * only when actually needed.
      */
     static async getConfigElement(): Promise<HTMLElement> {
-        if (!customElements.get('animated-weather-card-editor')) await loadEditorBundle();
+        if (!customElements.get('animated-weather-card-editor')) await loadEditorBundle('animated-weather-card-editor');
         return document.createElement('animated-weather-card-editor');
     }
 }

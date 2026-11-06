@@ -34,8 +34,11 @@ export function loadSiblingBundle(name: string, isReady: () => boolean): Promise
     return load;
 }
 
-/** The editors' bundle, with both cards' visual editors */
-export function loadEditorBundle(): Promise<void> {
-    return loadSiblingBundle('animated-weather-card-editor',
-        () => !!customElements.get('animated-weather-card-editor') && !!customElements.get('animated-sun-tracker-editor'));
+/**
+ * The editors' bundle, with both cards' visual editors. Each card waits only
+ * for its own, so an older editor bundle beside a newer card still opens
+ * the weather card's.
+ */
+export function loadEditorBundle(editor: string): Promise<void> {
+    return loadSiblingBundle('animated-weather-card-editor', () => !!customElements.get(editor));
 }
