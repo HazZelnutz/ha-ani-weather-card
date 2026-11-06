@@ -44,6 +44,8 @@ import type { NoteWriter, NoteStage } from './note-generator';
 // Import weather data processing
 import { processWeatherData, readNote, noteExpiresAt, WeatherNote } from './weather-data';
 import { localizeString, formatTime, timeHtml, localeKey } from './localize';
+import { ActionsConfig, bindActions, readActions, syncActionTarget } from './actions';
+import { loadEditorBundle, loadSiblingBundle } from './bundles';
 // Sky palettes (condition × time of day) and their animatable properties
 import { registerSkyProperties, skyPhaseFromSun, SkyPhase, skyColors, SKY_TEXT, oklchToSrgb, toHex } from './sky';
 // Import color utilities
@@ -68,6 +70,11 @@ const sunMetricIcon = (aboveHorizon: boolean) => aboveHorizon ? 'mdi:weather-sun
 const NOTE_TYPE_MS_PER_CHAR = 18;
 const NOTE_TYPE_MIN_MS = 450;
 const NOTE_TYPE_MAX_MS = 1600;
+
+/** A weather card for an entity, with the next sunset when Home Assistant has sun.sun */
+function weatherCardConfig(entity: string, hass?: HomeAssistant): AnimatedWeatherCardConfig {
+    return hass?.states['sun.sun'] ? { entity, sun_entity: 'sun.sun' } : { entity };
+}
 
 /** How long the old weather takes to fade out on a condition change (matches .condition-out in card.ts). */
 const CONDITION_FADE_OUT_MS = 400;
@@ -155,8 +162,21 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
     private noteComing: NoteStage | false = false;
     /** A note typing itself in (see typeIn) */
     private noteTyping?: { text: string; finish(): void };
-    static getStubConfig(): AnimatedWeatherCardConfig {
-        return DEFAULT_CONFIG;
+    /**
+     * A card from the card picker starts on your own weather: the first
+     * weather entity not on the dashboard yet, else one that is, else
+     * Met.no's default name (the editor then asks for one). Home Assistant
+     * passes the unused entities, then the used ones. With sun.sun, the
+     * metric row has the next sunset.
+     */
+    static getStubConfig(hass?: HomeAssistant, entities: string[] = [], entitiesFallback: string[] = []): AnimatedWeatherCardConfig {
+        const ids = [...entities, ...entitiesFallback, ...Object.keys(hass?.states ?? {})];
+        return weatherCardConfig(ids.find(id => id.startsWith('weather.')) ?? DEFAULT_CONFIG.entity!, hass);
+    }
+
+    /** The gestures' actions, against the weather entity. None in dev mode, which has no real entity */
+    private actionsConfig(): ActionsConfig {
+        return this.config?.dev_mode ? {} : readActions(this.config, this.config?.entity);
     }
 
     static get properties() {
@@ -190,6 +210,10 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
             this.lastFlightsState = undefined;
         }
         this.config = config;
+
+        // New actions reach the gestures as they happen; the target's role follows now
+        const info = this.querySelector('.weather-info') as HTMLElement | null;
+        if (info) syncActionTarget(info, this.actionsConfig(), 'group');
 
         // Initialize or update animation controller
         if (this.isConnected) {
@@ -555,7 +579,7 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
             this.noteWriter.start();
             return;
         }
-        AnimatedWeatherCard.loadSiblingBundle('animated-weather-card-note', () => !!window.AnimatedWeatherCardNote)
+        loadSiblingBundle('animated-weather-card-note', () => !!window.AnimatedWeatherCardNote)
             .then(() => {
                 if (this.isConnected) this.mountNoteWriter();
             })
@@ -718,7 +742,7 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
             this.devPanel.mount();
             return;
         }
-        AnimatedWeatherCard.loadSiblingBundle('animated-weather-card-dev', () => !!window.AnimatedWeatherCardDevPanel)
+        loadSiblingBundle('animated-weather-card-dev', () => !!window.AnimatedWeatherCardDevPanel)
             .then(() => {
                 if (this.isConnected) this.mountDevPanel();
             })
@@ -729,32 +753,13 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
         this.mountDevPanel();
         this.mountNoteWriter();
 
-        // Tap on the weather info opens the entity's more-info dialog —
-        // the conventional HA card behavior. Skip in dev mode (there's no
-        // real entity) and when no entity is configured.
-        if (!this.config?.dev_mode && this.config?.entity) {
-            const entity = this.config.entity;
-            const info = this.querySelector('.weather-info') as HTMLElement | null;
-            if (info && !info.dataset.tapBound) {
-                info.dataset.tapBound = '1';
-                info.style.cursor = 'pointer';
-                info.setAttribute('role', 'button');
-                info.setAttribute('tabindex', '0');
-                const fireMoreInfo = () => {
-                    this.dispatchEvent(new CustomEvent('hass-more-info', {
-                        detail: { entityId: entity },
-                        bubbles: true,
-                        composed: true,
-                    }));
-                };
-                info.addEventListener('click', fireMoreInfo);
-                info.addEventListener('keydown', (e: KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        fireMoreInfo();
-                    }
-                });
-            }
+        // A tap on the weather opens the entity's more-info dialog, as Home
+        // Assistant's cards do; tap_action, hold_action and double_tap_action
+        // change that.
+        const info = this.querySelector('.weather-info') as HTMLElement | null;
+        if (info) {
+            bindActions(info, this, () => this.actionsConfig());
+            syncActionTarget(info, this.actionsConfig(), 'group');
         }
 
         // Only run initial setup if not in the middle of a dev mode change.
@@ -1013,12 +1018,12 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
             // Data-only changes: update text values in-place without touching DOM structure or animations
             let dataChanged = false;
 
-            // Compare attributes by their displayed-value projection. Use a
-            // sentinel for missing attributes so a legitimate 0 (calm wind,
-            // 0% humidity) doesn't read as "unchanged" against undefined.
-            const project = (v: unknown): string | number =>
-                v == null ? '__missing__' : (typeof v === 'number' ? Math.round(v) : String(v));
-            const attrs = ['temperature', 'humidity', 'wind_speed', 'pressure', 'wind_bearing', 'friendly_name'] as const;
+            // Compare the attributes as they are: what's shown can carry a
+            // decimal (a temperature, inHg), and the update only touches text
+            // that changed. A sentinel for missing attributes keeps a real 0
+            // (calm wind, 0% humidity) from reading as "unchanged".
+            const project = (v: unknown): string => v == null ? '__missing__' : String(v);
+            const attrs = ['temperature', 'apparent_temperature', 'humidity', 'wind_speed', 'pressure', 'wind_bearing', 'friendly_name'] as const;
             for (const a of attrs) {
                 if (project(oldEntity.attributes[a]) !== project(newEntity.attributes[a])) {
                     dataChanged = true;
@@ -1286,7 +1291,7 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
 
         const Planes = window.AnimatedWeatherCardPlanes;
         if (!Planes) {
-            AnimatedWeatherCard.loadSiblingBundle('animated-weather-card-planes', () => !!window.AnimatedWeatherCardPlanes)
+            loadSiblingBundle('animated-weather-card-planes', () => !!window.AnimatedWeatherCardPlanes)
                 .then(() => {
                     if (this.planesWanted && this.isConnected) this.startPlanes();
                 })
@@ -1559,13 +1564,16 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
 
         // The regular hero is a column that the frame can cut off at the
         // bottom; the compact one is a single row of ellipsized text, where
-        // only the strip itself overflowing matters (the numerals' glyphs
-        // overhang their line box, which isn't clipping).
+        // the strip itself overflowing matters (the numerals' glyphs overhang
+        // their line box, which isn't clipping), and so does the condition
+        // being cut short: a narrow strip shrinks the temperature to keep it.
         const compact = card.dataset.variant === 'compact';
+        const condition = compact ? card.querySelector('.weather-desc') as HTMLElement | null : null;
         const note = card.querySelector('.weather-note') as HTMLElement | null;
         // A note is shown whole or not at all: one its clamp cuts short doesn't fit
         const overflows = () => info.scrollHeight > info.clientHeight + 1
             || (!compact && !!hero && hero.scrollHeight > hero.clientHeight + 1)
+            || (!!condition && condition.scrollWidth > condition.clientWidth + 1)
             || (!!note && !note.hidden && note.scrollHeight > note.clientHeight + 1);
         if (!note || note.hidden) {
             delete card.dataset.note;
@@ -1612,45 +1620,8 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
      * only when actually needed.
      */
     static async getConfigElement(): Promise<HTMLElement> {
-        if (!customElements.get('animated-weather-card-editor')) {
-            await AnimatedWeatherCard.loadSiblingBundle('animated-weather-card-editor',
-                () => !!customElements.get('animated-weather-card-editor'));
-        }
+        if (!customElements.get('animated-weather-card-editor')) await loadEditorBundle('animated-weather-card-editor');
         return document.createElement('animated-weather-card-editor');
-    }
-
-    private static bundleLoads = new Map<string, Promise<void>>();
-
-    /**
-     * Load another of this card's bundles (the editor, the dev panel) from
-     * the folder the main bundle was loaded from, once.
-     */
-    private static loadSiblingBundle(name: string, isReady: () => boolean): Promise<void> {
-        const pending = AnimatedWeatherCard.bundleLoads.get(name);
-        if (pending) return pending;
-        const load = new Promise<void>((resolve, reject) => {
-            // Find the main bundle's <script> tag so we can resolve the other
-            // bundle's URL relative to it (keeping its ?v= cache buster).
-            // Falls back to a same-dir relative URL if detection fails.
-            const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[];
-            const main = scripts.find(s => /animated-weather-card(?:\.min)?\.js/.test(s.src));
-            const url = main
-                ? main.src.replace(/animated-weather-card(\.min)?\.js/, `${name}$1.js`)
-                : `${name}.js`;
-
-            const script = document.createElement('script');
-            script.src = url;
-            script.type = 'module';
-            script.async = true;
-            // Both bundles register themselves synchronously when they run
-            script.onload = () => isReady() ? resolve() : reject(new Error(`${url} loaded but registered nothing`));
-            script.onerror = () => reject(new Error(`Failed to load ${url}`));
-            document.head.appendChild(script);
-        });
-        // A failed load can be retried later (e.g. after a network blip)
-        load.catch(() => AnimatedWeatherCard.bundleLoads.delete(name));
-        AnimatedWeatherCard.bundleLoads.set(name, load);
-        return load;
     }
 }
 
@@ -1661,8 +1632,14 @@ window.customCards.push({
     type: 'animated-weather-card',
     name: 'Animated Weather Card',
     description: 'The weather as a moving sky that follows the sun, with the temperature, feels like, wind, humidity, pressure and sunset',
-    preview: false,
-    documentationURL: 'https://github.com/alexsto1an/ha-ani-weather-card'
+    // The card picker shows it moving, on the stub's weather
+    preview: true,
+    documentationURL: 'https://github.com/alexsto1an/ha-ani-weather-card',
+    // Home Assistant 2026.6 and later suggest it for a weather entity, under Community
+    getEntitySuggestion: (hass, entityId) => entityId.startsWith('weather.') ? [
+        { label: 'Regular', config: { type: 'custom:animated-weather-card', ...weatherCardConfig(entityId, hass) } },
+        { label: 'Compact', config: { type: 'custom:animated-weather-card', ...weatherCardConfig(entityId, hass), compact: true } },
+    ] : null,
 });
 
 // The banner, once per page, in the card's own colours: its name on a clear

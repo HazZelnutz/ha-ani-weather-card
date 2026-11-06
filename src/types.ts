@@ -232,6 +232,14 @@ export interface AnimatedWeatherCardConfig {
     indoor_style?: 'label' | 'icon' | 'both';
     /** One line: the temperature and condition over the moving sky */
     compact?: boolean;
+    /** Temperatures to one decimal (1), or in whole degrees (0, the default) */
+    temperature_decimals?: number;
+    /** What a tap does (default: the weather entity's more-info dialog) */
+    tap_action?: import('./actions').ActionConfig;
+    /** What a hold does (default: nothing) */
+    hold_action?: import('./actions').ActionConfig;
+    /** What a double tap does (default: nothing) */
+    double_tap_action?: import('./actions').ActionConfig;
     show_sun?: boolean;
     animate?: boolean;
     auto_pause?: boolean;
@@ -446,6 +454,17 @@ export interface CustomCardDefinition {
     readonly preview: boolean;
     readonly documentationURL: string;
     readonly version?: string;
+    /**
+     * The card picker's suggestions for an entity someone picked (Home
+     * Assistant 2026.6 and later): one, several with labels, or null
+     */
+    readonly getEntitySuggestion?: (hass: HomeAssistant, entityId: string) => CardSuggestion | CardSuggestion[] | null;
+}
+
+/** A card the picker suggests: its config, and a label after its name when there are several */
+export interface CardSuggestion {
+    config: Record<string, unknown> & { type: string };
+    label?: string;
 }
 
 /**

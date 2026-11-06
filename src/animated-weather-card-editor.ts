@@ -9,7 +9,12 @@
 // dashboards never open the visual editor.
 
 import { AnimatedWeatherCardEditor } from './config-editor';
+import { AnimatedSunTrackerEditor } from './sun-tracker-editor';
 
 if (!customElements.get('animated-weather-card-editor')) {
     customElements.define('animated-weather-card-editor', AnimatedWeatherCardEditor);
+}
+// The sun tracker's editor comes in the same bundle
+if (!customElements.get('animated-sun-tracker-editor')) {
+    customElements.define('animated-sun-tracker-editor', AnimatedSunTrackerEditor);
 }

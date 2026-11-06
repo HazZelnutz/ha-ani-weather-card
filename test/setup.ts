@@ -80,4 +80,17 @@ if (!window.matchMedia) {
     });
 }
 
+// jsdom has no 2D canvas. Clouds draw their masks on one: a stand-in that
+// draws nothing, with an image named for its size, keeps that path running.
+// Anything a cloud's mask needs from a canvas is here.
+HTMLCanvasElement.prototype.getContext = function getContext() {
+    return {
+        fillStyle: '', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0,
+        beginPath: vi.fn(), moveTo: vi.fn(), arcTo: vi.fn(), closePath: vi.fn(), fill: vi.fn(), drawImage: vi.fn(),
+    };
+} as unknown as typeof HTMLCanvasElement.prototype.getContext;
+HTMLCanvasElement.prototype.toDataURL = function toDataURL(this: HTMLCanvasElement) {
+    return `data:image/png;base64,${this.width}x${this.height}`;
+};
+
 installGsapStub();

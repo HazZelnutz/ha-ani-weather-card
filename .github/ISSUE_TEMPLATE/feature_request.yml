@@ -1,0 +1,23 @@
+name: Idea
+description: Something you'd like either card to do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What you'd like
+      description: What the card would show or do.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What you're trying to see or do on your dashboard, and where the card falls short today.
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: A sketch, a screenshot, or another card that does it well.

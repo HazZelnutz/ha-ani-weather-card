@@ -80,7 +80,7 @@
                 </li>
                 <li class="step">
                     <h3>Add the card</h3>
-                    <p>Edit your dashboard, select <b>Add card</b> and search for <b>Animated Weather Card</b>. Pick your weather entity. That's all it needs.</p>
+                    <p>Edit your dashboard, select <b>Add card</b> and search for <b>Animated Weather Card</b>. It starts on your weather entity, and that's all it needs.</p>
                     <div class="code" data-lang="yaml">
                         <div class="code-bar"><span class="code-name">Or in YAML</span><button type="button" class="copy"><span class="copy-icon" aria-hidden="true"></span><span class="copy-label">Copy</span></button></div>
                         <pre><code>type: custom:animated-weather-card
@@ -134,7 +134,7 @@ entity: weather.forecast_home</code></pre>
                             <thead><tr><th scope="col">File</th><th scope="col">What it is</th></tr></thead>
                             <tbody>
                                 <tr><td><code>animated-weather-card.js</code></td><td>Both cards. The only resource you add.</td></tr>
-                                <tr><td><code>animated-weather-card-editor.js</code></td><td>The visual editor, loaded the first time you open the card's settings.</td></tr>
+                                <tr><td><code>animated-weather-card-editor.js</code></td><td>The visual editors for both cards, loaded the first time you open a card's settings.</td></tr>
                                 <tr><td><code>animated-weather-card-note.js</code></td><td>The note writer, loaded only by cards that write their own note.</td></tr>
                                 <tr><td><code>animated-weather-card-planes.js</code></td><td>The planes, loaded only by cards with a flights sensor.</td></tr>
                                 <tr><td><code>animated-weather-card-dev.js</code></td><td>The developer panel, loaded only with <code>dev_mode: true</code>. You can leave it out.</td></tr>
@@ -161,7 +161,8 @@ entity: weather.forecast_home</code></pre>
                     <h2 id="first-card-title"><a class="anchor" href="#first-card">Your first card</a></h2>
 
                     <h3 id="editor">In the editor</h3>
-                    <p>Add the card and pick your weather entity, and it's working. Everything else is in the editor's sections: <b>Entities</b>, <b>Display</b>, <b>Weather note</b>, <b>Day and night</b>, <b>Advanced</b>, <b>Weather engine</b> and <b>Colors</b>.</p>
+                    <p>Add the card and it's working: it starts on your weather entity. If you have more than one, pick the one you want. Everything else is in the editor's sections: <b>Entities</b>, <b>Display</b>, <b>Interactions</b>, <b>Weather note</b>, <b>Day and night</b>, <b>Advanced</b>, <b>Weather engine</b> and <b>Colors</b>.</p>
+                    <p>In Home Assistant 2026.6 and later, the <b>By entity</b> tab suggests the card too. Pick your weather entity, and it's under <b>Community</b>, regular and compact.</p>
 
                     <h3 id="yaml">In YAML</h3>
                     <p>A weather entity is the one thing the card needs. The sun entity is optional: it adds the next sunset, or sunrise, to the metrics. The sky follows <code>sun.sun</code> either way.</p>

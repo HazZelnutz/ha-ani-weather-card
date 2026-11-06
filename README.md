@@ -5,7 +5,7 @@
 **Live weather, on your dashboard.**
 
 [![GitHub Release](https://img.shields.io/github/v/release/alexsto1an/ha-ani-weather-card?style=flat-square)](https://github.com/alexsto1an/ha-ani-weather-card/releases)
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=flat-square)](https://hacs.xyz/)
 [![License](https://img.shields.io/github/license/alexsto1an/ha-ani-weather-card?style=flat-square)](https://github.com/alexsto1an/ha-ani-weather-card/blob/main/LICENSE)
 
 ![Three weather cards over Lisbon, each with its note: a sunny afternoon, a thunderstorm and a clear night](docs/images/hero.webp)
@@ -102,7 +102,7 @@ The card ships as five files that sit in the same folder:
 | File | What it is |
 | --- | --- |
 | `animated-weather-card.js` | Both cards. This is the only dashboard resource you add. |
-| `animated-weather-card-editor.js` | The visual editor. It loads the first time you open the card's settings. |
+| `animated-weather-card-editor.js` | The visual editors for both cards. It loads the first time you open a card's settings. |
 | `animated-weather-card-note.js` | The note writer. It loads only for cards that write their own note (`show_note`). |
 | `animated-weather-card-planes.js` | The planes. It loads only for cards with a flights sensor (`flights_entity`). |
 | `animated-weather-card-dev.js` | The developer panel. It loads only for cards with `dev_mode: true`, so a manual install can leave it out. |
@@ -150,18 +150,21 @@ To update a manual install, overwrite the files and raise the `?v=` number in th
 
 ## Set up
 
-1. Edit your dashboard, select **Add card** and search for **Animated Weather Card**.
-2. Pick your weather entity. That's enough to start.
+1. Edit your dashboard, select **Add card** and search for **Animated Weather Card**. It starts on your weather entity and `sun.sun`.
+2. If you have more than one weather entity, pick the one you want. That's enough to start.
 3. Adjust the rest in the editor's sections:
    - **Entities**
    - **Display**
+   - **Interactions**
    - **Weather note**
    - **Day and night**
    - **Advanced**
    - **Weather engine**
    - **Colors**
 
-For the sun tracker, search for **Animated Sun Tracker** and pick `sun.sun`.
+For the sun tracker, search for **Animated Sun Tracker**. It starts on `sun.sun`, with your moon sensor if you have one.
+
+In Home Assistant 2026.6 and later, the **By entity** tab suggests both cards too: pick your weather entity, or `sun.sun`, and they're under **Community**, regular and compact.
 
 Or in YAML:
 
@@ -475,6 +478,7 @@ sunset_hour: 19
 | Option | Default | Description |
 | --- | --- | --- |
 | `compact` | `false` | One line about 88 px tall: the temperature and condition, with the location and "feels like" beside them. Two rows in the sections view |
+| `temperature_decimals` | `0` | `1` shows the temperature, "feels like" and the indoor temperature to one decimal, `21.5°`, in your language's format. `0` rounds them to whole degrees |
 | `show_location` | `true` | Show the location name |
 | `show_attributes` | `true` | Show the metric row: humidity, wind, pressure and sunset |
 | `show_attribute_labels` | `true` | Show the metric labels |
@@ -484,6 +488,14 @@ sunset_hour: 19
 | `indoor_style` | `label` | How the indoor reading starts: `label` (the word "Indoors", translated), `icon` (a house) or `both` |
 | `show_flight_labels` | `true` | Show the flight number and aircraft type beside each plane. Labels only appear in open sky, never over the temperature |
 | `color_palette` | `default` | `default` for the sky, or `theme` for your dashboard's colours |
+
+**Interactions**
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `tap_action` | `more-info` | What a tap on the weather does. Takes Home Assistant's [card actions](https://www.home-assistant.io/dashboards/actions/): `more-info`, `navigate`, `url`, `perform-action`, `assist` or `none`. By default it opens the weather entity's details |
+| `hold_action` | `none` | What a press of half a second or more does |
+| `double_tap_action` | `none` | What a double tap does. With it set, a single tap waits a quarter of a second to tell the two apart |
 
 **Weather note**
 
@@ -555,6 +567,9 @@ Set these under `custom_colors:`. Leave one out to keep the built-in colour.
 | `show_header` | `true` | Show the next sunrise or sunset and the time until it |
 | `show_details` | `true` | Show first and last light, solar noon, daylight and the moon phase |
 | `color_palette` | `default` | `default` for the sky, or `theme` for your dashboard's colours |
+| `tap_action` | `more-info` | What a tap does. By default it opens the sun entity's details. Takes the same actions as the weather card |
+| `hold_action` | `none` | What a press of half a second or more does |
+| `double_tap_action` | `none` | What a double tap does |
 
 `custom_colors` and theme skies apply to the weather card only.
 
@@ -665,9 +680,10 @@ To try a change in Home Assistant, copy the five `.js` files to `config/www/` an
 ```
 src/
 ├── animated-weather-card.ts        # The weather card
-├── sun-tracker-card.ts             # The sun tracker card and its editor
+├── sun-tracker-card.ts             # The sun tracker card
 ├── animated-weather-card-editor.ts # Entry point of the editor bundle
 ├── config-editor.ts                # Visual editor for the weather card
+├── sun-tracker-editor.ts           # Visual editor for the sun tracker
 ├── animated-weather-card-dev.ts    # Entry point of the developer panel bundle
 ├── dev-panel.ts                    # Developer panel (dev_mode)
 ├── animated-weather-card-note.ts   # Entry point of the note writer bundle

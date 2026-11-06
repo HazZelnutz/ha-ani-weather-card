@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Both cards are easier to add. In Home Assistant 2026.6 and later, picking your weather entity under **By entity** suggests the weather card, regular and compact, under **Community**, and picking `sun.sun` suggests the sun tracker. In the card list, both cards now show themselves moving, on your own weather and sun.
+- Tap, hold and double-tap actions on both cards: `tap_action`, `hold_action` and `double_tap_action` take Home Assistant's card actions, such as navigating to another view or running a script. A tap still opens the entity's details by default, and on the sun tracker it now opens the sun's. Both editors have them, under Interactions.
+- Temperatures to one decimal: `temperature_decimals: 1` shows the temperature, "feels like" and the indoor temperature as 21.5°, in your language's format. It's a switch in the editor's Display section.
+- A bug report on GitHub starts from a form that asks for what it takes to fix it: the card and Home Assistant versions, the browser or app, the card's YAML and a screenshot. Ideas have a form of their own, and questions point to the setup guide's troubleshooting.
+
+### Changed
+
+- A weather card added from the card list starts on your weather entity and `sun.sun`, and takes its location from the entity's name. It used to start on `weather.forecast_home`, named "Weather", with every option written out. A sun tracker starts with your moon sensor, if you have one.
+- The sun tracker's visual editor now comes with the weather card's, in `animated-weather-card-editor.js`, which loads the first time you open either card's settings. With it out of the main file, `animated-weather-card.js` stays about 76 KB gzipped with everything this release adds.
+- The README's HACS badge says Default instead of Custom, now that the card is in HACS's default store.
+
+### Fixed
+
+- On iPhones and iPads, a cloud could carry a thin dark line down its right side, in the sky palette. Safari's blur drew it into the cloud. Each part of a cloud is now blurred once, through a mask drawn on a canvas, and looks as it did. On a Mac, Safari's clouds come out a touch crisper, as they are in other browsers.
+- A compact strip too narrow for the condition shrinks its temperature to keep the condition whole, instead of cutting it to a letter or two.
+- "Feels like" from the weather entity now updates when it changes on its own, and so does a pressure in inHg that moves only after the decimal point. Both waited for another value to change.
+
 ## [1.1.1] - 2026-11-02
 
 ### Added

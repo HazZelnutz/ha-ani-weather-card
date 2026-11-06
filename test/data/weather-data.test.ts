@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { processWeatherData, conditionName, readNote, noteExpiresAt, NOTE_MAX_AGE_MINUTES, windBearingOf } from '../../src/weather-data';
+import { processWeatherData, conditionName, readNote, noteExpiresAt, NOTE_MAX_AGE_MINUTES, windBearingOf, temperatureDecimals } from '../../src/weather-data';
 import type { HomeAssistant, AnimatedWeatherCardConfig } from '../../src/types';
 
 /**
@@ -172,6 +172,48 @@ describe('processWeatherData — feels-like', () => {
             feels_like_entity: 'sensor.feels_like',
         };
         expect(processWeatherData(hass, config).feelsLike).toBe('10°');
+    });
+});
+
+describe('processWeatherData — temperature decimals', () => {
+    const withIndoor = (language: string): HomeAssistant => ({
+        states: {
+            'weather.home': {
+                entity_id: 'weather.home', state: 'sunny',
+                attributes: { temperature: 21.46, apparent_temperature: 13.04, humidity: 48.6 },
+            },
+            'sensor.living_room': { entity_id: 'sensor.living_room', state: '22.57', attributes: {} },
+        },
+        language,
+    } as unknown as HomeAssistant);
+    const config = (temperature_decimals?: unknown): AnimatedWeatherCardConfig =>
+        ({ entity: 'weather.home', indoor_temperature_entity: 'sensor.living_room', temperature_decimals });
+
+    it('rounds every temperature to whole degrees by default', () => {
+        const data = processWeatherData(withIndoor('en-US'), config());
+        expect([data.temperature, data.feelsLike, data.indoorTemperature]).toEqual(['21', '13°', '23°']);
+    });
+
+    it('shows the temperature, feels like and indoors to one decimal, and nothing else', () => {
+        const data = processWeatherData(withIndoor('en-US'), config(1));
+        expect([data.temperature, data.feelsLike, data.indoorTemperature]).toEqual(['21.5', '13.0°', '22.6°']);
+        expect(data.humidity).toBe('49%');
+    });
+
+    it('writes the decimal the way the language does', () => {
+        expect(processWeatherData(withIndoor('de-DE'), config(1)).temperature).toBe('21,5');
+    });
+
+    it('keeps whole degrees for anything YAML holds but 1', () => {
+        for (const value of [0, 2, -1, 'one', true]) {
+            expect(processWeatherData(withIndoor('en-US'), config(value)).temperature, String(value)).toBe(value === true ? '21.5' : '21');
+        }
+        expect(temperatureDecimals({ temperature_decimals: '1' })).toBe(1);
+    });
+
+    it('shows the dev mode samples to one decimal too', () => {
+        const data = processWeatherData(undefined, { dev_mode: true, temperature_decimals: 1 }, 'sunny');
+        expect(data.temperature).toMatch(/^26[.,]0$/);
     });
 });
 

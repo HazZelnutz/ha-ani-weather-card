@@ -5,6 +5,8 @@ import { DEFAULT_ENGINE_SETTINGS } from './constants';
 import { getConfigEditorStyles } from './styles/editor';
 import { skyColors, oklchToSrgb, toHex, SKY_TEXT } from './sky';
 import { escapeHtml, textField } from './utils';
+import { readActions } from './actions';
+import { mountActionsEditor, updateActionsEditor } from './action-editor';
 
 /** note_calendar as a list: YAML takes one calendar or several, the editor's picker shows the first */
 function noteCalendarList(value: unknown): string[] {
@@ -231,6 +233,12 @@ export class AnimatedWeatherCardEditor extends HTMLElement implements LovelaceCa
                 <span>Compact: one line, the temperature and condition over the sky</span>
               </label>
             </div>
+            <div class="option">
+              <label class="switch-label">
+                <ha-switch id="temperature_decimals" ${Number(this._config.temperature_decimals) === 1 ? 'checked' : ''}></ha-switch>
+                <span>Temperatures to one decimal: 21.5° rather than 22°</span>
+              </label>
+            </div>
 
             <div class="group-title">Show</div>
             <div class="option">
@@ -292,6 +300,19 @@ export class AnimatedWeatherCardEditor extends HTMLElement implements LovelaceCa
                 <span>Let rain, snow and leaves spill outside the card</span>
               </label>
             </div>
+          </div>
+        </div>
+
+        <!-- Interactions ───────────────────────────────────────────────── -->
+        <div class="section">
+          <div class="section-header" role="button" tabindex="0" data-section="interactions">
+            <ha-icon icon="mdi:gesture-tap"></ha-icon>
+            <h3>Interactions</h3>
+            <ha-icon class="expand-icon" icon="mdi:chevron-down"></ha-icon>
+          </div>
+          <div class="section-content">
+            <p class="section-note">What a tap, a hold and a double tap on the card do. A tap opens the weather's details unless you choose something else.</p>
+            <div id="actions-editor"></div>
           </div>
         </div>
 
@@ -649,6 +670,13 @@ export class AnimatedWeatherCardEditor extends HTMLElement implements LovelaceCa
             this._updateConfig('indoor_style', value === 'label' ? undefined : value);
         });
 
+        const actions = this.querySelector('#actions-editor') as HTMLElement | null;
+        if (actions) {
+            mountActionsEditor(actions, this._hass, readActions(this._config, this._config?.entity), patch => {
+                for (const [key, value] of Object.entries(patch)) this._updateConfig(key, value);
+            });
+        }
+
         this.querySelector('#animate')?.addEventListener('change', (e) => {
             this._updateConfig('animate', (e.target as HTMLInputElement).checked);
         });
@@ -674,6 +702,10 @@ export class AnimatedWeatherCardEditor extends HTMLElement implements LovelaceCa
 
         this.querySelector('#compact')?.addEventListener('change', (e) => {
             this._updateConfig('compact', (e.target as HTMLInputElement).checked || undefined);
+        });
+        // Whole degrees are the default, so they don't need to be written out
+        this.querySelector('#temperature_decimals')?.addEventListener('change', (e) => {
+            this._updateConfig('temperature_decimals', (e.target as HTMLInputElement).checked ? 1 : undefined);
         });
         this.querySelector('#show_location')?.addEventListener('change', (e) => {
 
@@ -1006,6 +1038,7 @@ export class AnimatedWeatherCardEditor extends HTMLElement implements LovelaceCa
             return;
         }
         this.syncNoteOptions();
+        updateActionsEditor(this.querySelector('#actions-editor'), this._hass);
 
         const pickers = [
             { id: '#entity', domains: ['weather'] },
