@@ -234,6 +234,12 @@ export interface AnimatedWeatherCardConfig {
     compact?: boolean;
     /** Temperatures to one decimal (1), or in whole degrees (0, the default) */
     temperature_decimals?: number;
+    /** What a tap does (default: the weather entity's more-info dialog) */
+    tap_action?: import('./actions').ActionConfig;
+    /** What a hold does (default: nothing) */
+    hold_action?: import('./actions').ActionConfig;
+    /** What a double tap does (default: nothing) */
+    double_tap_action?: import('./actions').ActionConfig;
     show_sun?: boolean;
     animate?: boolean;
     auto_pause?: boolean;

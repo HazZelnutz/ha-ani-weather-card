@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Tap, hold and double-tap actions on both cards: `tap_action`, `hold_action` and `double_tap_action` take Home Assistant's card actions, such as navigating to another view or running a script. A tap still opens the entity's details by default, and on the sun tracker it now opens the sun's. Both editors have them, under Interactions.
 - Temperatures to one decimal: `temperature_decimals: 1` shows the temperature, "feels like" and the indoor temperature as 21.5°, in your language's format. It's a switch in the editor's Display section.
 - A bug report on GitHub starts from a form that asks for what it takes to fix it: the card and Home Assistant versions, the browser or app, the card's YAML and a screenshot. Ideas have a form of their own, and questions point to the setup guide's troubleshooting.
 

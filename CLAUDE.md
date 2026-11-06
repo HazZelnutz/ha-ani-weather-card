@@ -54,6 +54,8 @@ src/
 ├── animated-weather-card-dev.ts    # Entry point of the developer panel bundle
 ├── dev-panel.ts                    # Developer panel (dev_mode)
 ├── weather-data.ts                 # Reads the weather entity and the optional sensors
+├── actions.ts                      # Tap, hold and double-tap actions for both cards
+├── action-editor.ts                # Both editors' controls for those actions
 ├── utils.ts                        # Condition mapping, engine settings, escaping, helpers
 ├── sky.ts                          # Sky palettes (OKLCH), phases, dissolves, contrast math
 ├── time-manager.ts                 # Clock-based day/night cycle (enable_day_night_cycle)
@@ -107,6 +109,7 @@ demo/
   - Storm beats fog, fog beats heavy rain, and so on.
   - `hail` becomes `sleety`.
   - Anything unknown becomes `sunny`.
+- **Actions.** `tap_action`, `hold_action` and `double_tap_action` (`actions.ts`) work on the weather card's `.weather-info` and the tracker's `ha-card`, both kept across renders, and read the config at each gesture. With no `tap_action`, a tap fires `hass-more-info`, which every Home Assistant version handles; an action that's set goes out as `hass-action` (2023.7 and later) for Home Assistant to run. An unset hold or double tap fires nothing, because Home Assistant would open more-info for it. A tap waits out the double tap's 250 ms only when one is set, and a hold (500 ms) is watched for only when one is set. The target is a button (role, `tabindex`, Enter and Space) only while a tap does something. Dev mode has no actions.
 - **Escaping.** Entity and config text goes through `escapeHtml` wherever it reaches markup, attributes included: the editors' values, the cards' labels and icons. An icon name is built only from a known value (the tracker's eight moon phases), never from a state, and a state is looked up in a table with `lookup` (`utils.ts`), which reads only the table's own entries, never what every object inherits (`constructor`). Colours are validated before they reach CSS (`isValidColor`: hex, names, and `rgb()`/`rgba()` of numbers only), the fog's `custom_colors.fog_color` included, and the style attribute they land in is escaped too. `test/cards/escaping.test.ts` feeds hostile values through each.
 
 ### The sky
@@ -161,7 +164,7 @@ demo/
 
 ## The sun tracker
 
-- **Element.** `sun-tracker-card.ts` holds the card and its editor. The card renders in shadow DOM.
+- **Element.** `sun-tracker-card.ts` holds the card and its editor. The card renders in shadow DOM. A tap opens the sun entity's more-info unless its actions say otherwise.
 - **Path geometry.** `pathElevation` draws one continuous wave that crosses the horizon at sunrise and sunset. The regular and compact layouts use their own path geometry.
 - **Required entity.** `sun_entity` is required.
 - **Shared sky.** `weather_entity` gives the tracker that entity's sky at the current phase, so a compact tracker under the weather card reads as one piece. `custom_colors` and theme skies don't apply to the tracker.
@@ -170,7 +173,8 @@ demo/
 
 ## The visual editor
 
-- **Bundle.** `config-editor.ts` ships in the editor bundle. Its sections are Entities, Display, Weather note, Day and night, Advanced, Weather engine and Colors. Every weather card option is in it.
+- **Bundle.** `config-editor.ts` ships in the editor bundle. Its sections are Entities, Display, Interactions, Weather note, Day and night, Advanced, Weather engine and Colors. Every weather card option is in it.
+- **Interactions.** Both editors get the gestures' controls from `mountActionsEditor` (`action-editor.ts`): Home Assistant's `ha-form` with a `ui_action` selector per gesture, as its own card editors have them (tap defaults to more-info, hold and double tap to none). `ha-form` is defined once one of Home Assistant's editors loads, so the helper loads the tile card's; until it's there, a select per gesture offers the plain actions and keeps one set in YAML. The tracker's editor redraws on `setConfig` only for a config it didn't just send, or the form would be rebuilt under the user's typing.
 - **Entity pickers.** They need `ha-entity-picker`, which Home Assistant only defines once something has loaded it. `ensureEntityPickerLoaded` gets it through `loadCardHelpers()` and an entities card's `getConfigElement()`, and suppresses the harmless rejection that side effect produces.
 - **Selects.** `ha-select` is filled through its `options` property and reports through the `selected` event. Stop its `closed` event from bubbling, or it closes Home Assistant's edit dialog.
 - **Other controls.**

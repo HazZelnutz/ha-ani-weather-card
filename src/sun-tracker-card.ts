@@ -13,6 +13,8 @@ import { iconBoxCss } from './styles/icon-box';
 import { localizeString, localeKey, formatTime, formatDuration, timeHtml as splitTimeHtml } from './localize';
 import { HomeAssistant } from './types';
 import { escapeHtml, getWeatherClass, lookup, textField } from './utils';
+import { ActionConfig, ActionsConfig, bindActions, readActions, syncActionTarget } from './actions';
+import { mountActionsEditor, updateActionsEditor } from './action-editor';
 import {
     skyColors, skyPhaseFromSun, oklchToSrgb, toHex, registerSkyProperties, SKY_CONDITIONS,
     type SkyCondition, type SkyPhase,
@@ -31,6 +33,12 @@ interface SunTrackerConfig {
     show_details?: boolean;
     title?: string;
     color_palette?: 'default' | 'theme';
+    /** What a tap does (default: the sun entity's more-info dialog) */
+    tap_action?: ActionConfig;
+    /** What a hold does (default: nothing) */
+    hold_action?: ActionConfig;
+    /** What a double tap does (default: nothing) */
+    double_tap_action?: ActionConfig;
     type?: string;
 }
 
@@ -601,6 +609,11 @@ class AnimatedSunTrackerCard extends HTMLElement {
         }
     }
 
+    /** The gestures' actions, against the sun entity: a tap opens its more-info dialog unless told otherwise */
+    private _actions(): ActionsConfig {
+        return readActions(this.config as Record<string, unknown>, this.config.sun_entity);
+    }
+
     getCardSize(): number { return this.config.compact ? 2 : 6; }
 
     /**
@@ -796,7 +809,10 @@ class AnimatedSunTrackerCard extends HTMLElement {
         if (!card) {
             this._shadow.innerHTML = `<style>${STYLES}</style><ha-card><div class="st-card"></div></ha-card>`;
             card = this._shadow.querySelector('.st-card') as HTMLElement;
+            // The card is kept across renders, so its gestures are bound once
+            bindActions(card.parentElement as HTMLElement, this, () => this._actions());
         }
+        syncActionTarget(card.parentElement as HTMLElement, this._actions());
         const sky = !!skyVars;
         card.classList.toggle('sky', sky);
         card.classList.toggle('compact', !!this.config.compact);
@@ -840,6 +856,18 @@ const EDITOR_STYLES = `
         font-size: 12px;
         color: var(--secondary-text-color);
     }
+    .st-editor .st-actions-title {
+        border-top: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+        padding-top: 16px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--primary-text-color);
+    }
+    .st-editor #st-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
 `;
 
 class AnimatedSunTrackerEditor extends HTMLElement {
@@ -848,14 +876,18 @@ class AnimatedSunTrackerEditor extends HTMLElement {
     private _initialized = false;
 
     setConfig(config: SunTrackerConfig): void {
+        // The config this editor just sent comes straight back: drawing it
+        // again would take the focus from whatever is being typed
+        const unchanged = JSON.stringify(config) === JSON.stringify(this._config);
         this._config = { ...config };
-        if (this._initialized) this._render();
+        if (this._initialized && !unchanged) this._render();
     }
 
     set hass(hass: HomeAssistant) {
         this._hass = hass;
         if (this._initialized && this.isConnected) {
             this._updatePickers();
+            updateActionsEditor(this.querySelector('#st-actions'), hass);
         }
     }
 
@@ -909,10 +941,14 @@ class AnimatedSunTrackerEditor extends HTMLElement {
                     ${toggle('show_details', 'Details', 'First and last light, solar noon, daylight, moon', c.show_details !== false)}
                     ${toggle('theme_palette', 'Blend with dashboard theme', 'Use theme colors instead of the sky', c.color_palette === 'theme')}
                 </div>
+                <div class="st-actions-title">Interactions</div>
+                <div id="st-actions"></div>
             </div>
         `;
         this._updatePickers();
         this._attachListeners();
+        mountActionsEditor(this.querySelector('#st-actions') as HTMLElement, this._hass,
+            readActions(this._config as Record<string, unknown>, this._config.sun_entity), patch => this._update(patch));
     }
 
     private _updatePickers(): void {

@@ -44,6 +44,7 @@ import type { NoteWriter, NoteStage } from './note-generator';
 // Import weather data processing
 import { processWeatherData, readNote, noteExpiresAt, WeatherNote } from './weather-data';
 import { localizeString, formatTime, timeHtml, localeKey } from './localize';
+import { ActionsConfig, bindActions, readActions, syncActionTarget } from './actions';
 // Sky palettes (condition × time of day) and their animatable properties
 import { registerSkyProperties, skyPhaseFromSun, SkyPhase, skyColors, SKY_TEXT, oklchToSrgb, toHex } from './sky';
 // Import color utilities
@@ -159,6 +160,11 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
         return DEFAULT_CONFIG;
     }
 
+    /** The gestures' actions, against the weather entity. None in dev mode, which has no real entity */
+    private actionsConfig(): ActionsConfig {
+        return this.config?.dev_mode ? {} : readActions(this.config, this.config?.entity);
+    }
+
     static get properties() {
         return {
             hass: {},
@@ -190,6 +196,10 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
             this.lastFlightsState = undefined;
         }
         this.config = config;
+
+        // New actions reach the gestures as they happen; the target's role follows now
+        const info = this.querySelector('.weather-info') as HTMLElement | null;
+        if (info) syncActionTarget(info, this.actionsConfig(), 'group');
 
         // Initialize or update animation controller
         if (this.isConnected) {
@@ -729,32 +739,13 @@ class AnimatedWeatherCard extends HTMLElement implements LovelaceCard {
         this.mountDevPanel();
         this.mountNoteWriter();
 
-        // Tap on the weather info opens the entity's more-info dialog —
-        // the conventional HA card behavior. Skip in dev mode (there's no
-        // real entity) and when no entity is configured.
-        if (!this.config?.dev_mode && this.config?.entity) {
-            const entity = this.config.entity;
-            const info = this.querySelector('.weather-info') as HTMLElement | null;
-            if (info && !info.dataset.tapBound) {
-                info.dataset.tapBound = '1';
-                info.style.cursor = 'pointer';
-                info.setAttribute('role', 'button');
-                info.setAttribute('tabindex', '0');
-                const fireMoreInfo = () => {
-                    this.dispatchEvent(new CustomEvent('hass-more-info', {
-                        detail: { entityId: entity },
-                        bubbles: true,
-                        composed: true,
-                    }));
-                };
-                info.addEventListener('click', fireMoreInfo);
-                info.addEventListener('keydown', (e: KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        fireMoreInfo();
-                    }
-                });
-            }
+        // A tap on the weather opens the entity's more-info dialog, as Home
+        // Assistant's cards do; tap_action, hold_action and double_tap_action
+        // change that.
+        const info = this.querySelector('.weather-info') as HTMLElement | null;
+        if (info) {
+            bindActions(info, this, () => this.actionsConfig());
+            syncActionTarget(info, this.actionsConfig(), 'group');
         }
 
         // Only run initial setup if not in the middle of a dev mode change.
