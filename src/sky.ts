@@ -269,6 +269,12 @@ export const SKY_GLOW_WIDE: GlowGeometry = { rx: 0.40, ry: 0.64, cx: 0.86, cy: 0
  */
 export const SKY_GLOW_COMPACT: GlowGeometry = { rx: 0.24, ry: 0.95, cx: 0.86, cy: 0.5, fade: 0.64 };
 
+/**
+ * The forecast card: its time row runs right across the top, so the light
+ * sits higher, in the corner above it, and spreads along the top edge.
+ */
+export const SKY_GLOW_FORECAST: GlowGeometry = { rx: 0.36, ry: 0.62, cx: 0.9, cy: -0.14, fade: 0.64 };
+
 /** CSS radial-gradient for the glow, e.g. `skyGlowGradient(SKY_GLOW, 'var(--awc-sky-glow)')`. */
 export function skyGlowGradient(g: GlowGeometry, color: string): string {
     const pct = (n: number) => `${Math.round(n * 100)}%`;

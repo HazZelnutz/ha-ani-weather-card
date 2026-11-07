@@ -173,3 +173,7 @@ export const DAY_NIGHT_ANIMATION_COLORS = {
 };
 
 
+
+/** The forecast card's slots: how many each kind shows by default, and the most it takes */
+export const FORECAST_DEFAULT_SLOTS = { daily: 7, hourly: 12 } as const;
+export const FORECAST_MAX_SLOTS = 24;
