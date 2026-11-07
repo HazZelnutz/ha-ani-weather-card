@@ -50,8 +50,9 @@ import { loadEditorBundle, loadSiblingBundle } from './bundles';
 import { registerSkyProperties, skyPhaseFromSun, SkyPhase, skyColors, SKY_TEXT, oklchToSrgb, toHex } from './sky';
 // Import color utilities
 import { generateCustomColorStyles } from './color-utils';
-// Register the sun tracker card (bundled into same JS file)
+// Register the sun tracker and forecast cards (bundled into same JS file)
 import './sun-tracker-card';
+import './forecast-card';
 
 registerSkyProperties();
 
