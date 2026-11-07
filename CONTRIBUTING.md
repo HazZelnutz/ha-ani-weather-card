@@ -61,7 +61,7 @@ The card ships as five bundles:
 
 | Bundle | When it loads |
 | --- | --- |
-| `animated-weather-card.js` | Always. It holds both cards |
+| `animated-weather-card.js` | Always. It holds the three cards |
 | `animated-weather-card-editor.js` | The first time someone opens the card's settings |
 | `animated-weather-card-note.js` | Only for cards that write their own note (`show_note`) |
 | `animated-weather-card-planes.js` | Only for cards with a flights sensor (`flights_entity`), or `dev_mode` |
@@ -70,7 +70,9 @@ The card ships as five bundles:
 ```
 src/
 ├── animated-weather-card.ts        # The weather card
-├── sun-tracker-card.ts             # The sun tracker card and its editor
+├── sun-tracker-card.ts             # The sun tracker card
+├── forecast-card.ts                # The forecast card
+├── weather-glyphs.ts               # The forecast card's drawings of the weather
 ├── config-editor.ts                # Visual editor for the weather card
 ├── dev-panel.ts                    # Developer panel (dev_mode)
 ├── note-generator.ts               # Writes the note with Home Assistant's AI Task

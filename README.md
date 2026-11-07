@@ -42,6 +42,10 @@ The download includes a second card, just for the sun. It shows the sun's path a
 
 ![The sun tracker in the late afternoon and after dark, with a full moon](docs/images/tracker.webp)
 
+## The forecast, drawn.
+
+A third card, also in the download, draws the forecast from your weather entity, daily or hourly. Each day or hour gets a small drawing of its weather in the cards' own light, the high and the low run across the card as two lines you can follow, and the chance of rain sits underneath where there is one. Its sky is your weather now, as on the weather card. [Set it up](#forecast).
+
 ## Better together.
 
 Stack a compact sun tracker under the weather card and the two read as one piece. They share your weather entity's sky, their text lines up, and rain falling out of the weather card passes behind the tracker. [Set it up](#weather-and-sun-tracker).
@@ -222,6 +226,16 @@ cards:
     moon_entity: sensor.moon_phase
     weather_entity: weather.forecast_home
     compact: true
+```
+
+### Forecast
+
+The week ahead, under your weather's sky. Add `forecast_type: hourly` for the hours instead. A narrow card shows as many days or hours as fit across it.
+
+```yaml
+type: custom:animated-weather-forecast-card
+entity: weather.forecast_home
+sun_entity: sun.sun
 ```
 
 ### Two strips
@@ -571,6 +585,27 @@ Set these under `custom_colors:`. Leave one out to keep the built-in colour.
 | `hold_action` | `none` | What a press of half a second or more does |
 | `double_tap_action` | `none` | What a double tap does |
 
+### Forecast card
+
+`type: custom:animated-weather-forecast-card`
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `entity` | required | A weather entity with a daily or hourly forecast |
+| `forecast_type` | `daily` | `daily` or `hourly` |
+| `forecast_slots` | `7` daily, `12` hourly | The most days or hours to show, from 1 to 24. A narrow card shows as many as fit, about one every 46 px |
+| `sun_entity` | `sun.sun` | Sets the sky's time of day, and which hours are at night when the forecast doesn't say |
+| `title` | — | A title in place of "Daily forecast" or "Hourly forecast" |
+| `show_header` | `true` | Show the title, or which forecast this is |
+| `show_precipitation` | `true` | Show the chance of rain from 10%, or the amount where the forecast gives no chance |
+| `animate` | `true` | Rain falls and clouds drift in each drawing. Reduced motion keeps them still |
+| `color_palette` | `default` | `default` for the sky, or `theme` for your dashboard's colours |
+| `tap_action` | `more-info` | What a tap does. By default it opens the weather entity's details |
+| `hold_action` | `none` | What a press of half a second or more does |
+| `double_tap_action` | `none` | What a double tap does |
+
+It takes four rows in the sections view, and gives up the header first in a shorter frame. The high is the forecast's `temperature`, the low its `templow`: most daily forecasts have both, most hourly ones only the first, which then draws one line.
+
 `custom_colors` and theme skies apply to the weather card only.
 
 ## Conditions
@@ -607,7 +642,7 @@ Free-text conditions can also reach these skies:
 Both cards follow your Home Assistant profile: its language and its 12/24-hour time format.
 
 - **From Home Assistant:** the weather condition, the moon phase, and the humidity, wind and pressure labels come from Home Assistant's own translations.
-- **The cards' own words:** "Feels like", "Indoors", sunrise and sunset, and the sun tracker's labels are translated into:
+- **The cards' own words:** "Feels like", "Indoors", sunrise and sunset, the sun tracker's labels and the forecast card's are translated into:
   - English
   - German
   - Spanish
