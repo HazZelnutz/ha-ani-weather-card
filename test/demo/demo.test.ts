@@ -11,7 +11,7 @@ import {
     QUIET, STATION, VOICE_NOTES, buildHass, forgetNotes, noteYaml,
     colorsYaml, conditionIcon, configYaml, customColors, dashboardLayout, dashboardYaml, engineSettings, engineYaml,
     formatEngineValue, liveReading, minutesFor, moonPhase, nextFlight, paletteOf, phaseForHour, phaseForSun, placeName,
-    noteFor, quietOptions, solarAt, solarElevation, solarTimes, stationStates, sunAt, sunAttributes, trackerYaml, weatherState,
+    noteFor, quietOptions, solarAt, solarElevation, solarTimes, stationStates, sunAt, sunAttributes, trackerYaml, forecastYaml, hourlyForecast, dailyForecast, weatherState,
     wmoCondition, SUN_TIMES,
 } from '../../demo/scene.mjs';
 import { MOON_ICONS, PAGE_FILES, iconNames, resolveIcons } from '../../demo/build.mjs';
@@ -146,8 +146,12 @@ describe('the demo\'s sample world', () => {
         const forecasts: any[] = [];
         await hass.connection.subscribeMessage((m: any) => forecasts.push(m), { type: 'weather/subscribe_forecast', entity_id: ENTITIES.weather, forecast_type: 'hourly' });
         expect(forecasts[0].type).toBe('hourly');
-        expect(forecasts[0].forecast).toHaveLength(12);
-        expect(forecasts[0].forecast[0].precipitation_probability).toBe(80);
+        // A day of hours, the weather chosen all day, as the sample notes expect
+        expect(forecasts[0].forecast).toHaveLength(24);
+        for (const hour of forecasts[0].forecast) {
+            expect(hour.condition).toBe('rainy');
+            expect(hour.precipitation_probability).toBeGreaterThanOrEqual(58);
+        }
 
         // One store for every card on the page, as for every screen of a user
         const seen: any[] = [];
@@ -279,6 +283,34 @@ describe('the demo\'s sample world', () => {
         const [weatherLines, trackerLines] = pair.join('\n').split('  - type: custom:animated-sun-tracker-card');
         for (const option of options(weatherLines)) expect(weather).toContain(`${option}?:`);
         for (const option of options(trackerLines)) expect(tracker).toContain(`config.${option}`);
+    });
+
+    it('writes the forecast card at each layout with options it really has', () => {
+        const forecast = readFileSync(join(process.cwd(), 'src/forecast-card.ts'), 'utf8');
+        for (const layout of ['daily', 'hourly', 'wide']) {
+            const yaml = forecastYaml({ layout, colors: 'theme' });
+            const lines = yaml.trimEnd().split('\n').filter(line => !line.startsWith('#'));
+            expect(lines[0]).toBe('type: custom:animated-weather-forecast-card');
+            for (const line of lines.slice(1)) expect(forecast).toContain(`config.${line.split(':')[0]}`);
+            expect(yaml.includes('forecast_type: hourly')).toBe(layout !== 'daily');
+        }
+    });
+
+    it('answers the forecast with a day that warms into the afternoon, and a week that changes', () => {
+        const now = new Date(2026, 10, 7, 9, 30);
+        const reading = { temp: 18, feels: 17, wind: 10 };
+        const hours = hourlyForecast('clear', reading, now);
+        expect(hours).toHaveLength(24);
+        expect(new Date(hours[0].datetime).getHours()).toBe(9);
+        // Warmest mid-afternoon, and the clear sky is the night's after sunset
+        const warmest = hours.reduce((a, b) => (b.temperature > a.temperature ? b : a));
+        expect(new Date(warmest.datetime).getHours()).toBe(14);
+        expect(hours.find(h => new Date(h.datetime).getHours() === 22)!.condition).toBe('clear-night');
+        const days = dailyForecast('rainy', reading, now);
+        expect(days).toHaveLength(7);
+        expect(days[0].condition).toBe('rainy');
+        expect(new Set(days.map(d => d.condition)).size).toBeGreaterThan(2);
+        for (const day of days) expect(day.templow).toBeLessThan(day.temperature);
     });
 
     it('wires the station through real card options', () => {
