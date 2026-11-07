@@ -13,7 +13,9 @@ export type CardString =
     | 'sunrise' | 'sunset' | 'solar_noon' | 'daylight'
     | 'first_light' | 'last_light' | 'moon'
     | 'in_duration'
-    | 'note_reading' | 'note_writing';
+    | 'note_reading' | 'note_writing'
+    | 'now' | 'today' | 'forecast_hourly' | 'forecast_daily'
+    | 'high' | 'low' | 'precipitation' | 'no_forecast';
 
 const STRINGS: Record<string, Partial<Record<CardString, string>>> = {
     en: {
@@ -22,6 +24,8 @@ const STRINGS: Record<string, Partial<Record<CardString, string>>> = {
         first_light: 'First light', last_light: 'Last light', moon: 'Moon',
         in_duration: 'in {duration}',
         note_reading: 'Reading the forecast', note_writing: 'Writing the note',
+        now: 'Now', today: 'Today', forecast_hourly: 'Hourly forecast', forecast_daily: 'Daily forecast',
+        high: 'High', low: 'Low', precipitation: 'Precipitation', no_forecast: 'No forecast yet',
     },
     de: {
         feels_like: 'Gefühlt', indoors: 'Innen',
@@ -29,6 +33,8 @@ const STRINGS: Record<string, Partial<Record<CardString, string>>> = {
         first_light: 'Morgendämmerung', last_light: 'Abenddämmerung', moon: 'Mond',
         in_duration: 'in {duration}',
         note_reading: 'Vorhersage wird gelesen', note_writing: 'Notiz wird geschrieben',
+        now: 'Jetzt', today: 'Heute', forecast_hourly: 'Stündliche Vorhersage', forecast_daily: 'Tägliche Vorhersage',
+        high: 'Höchstwert', low: 'Tiefstwert', precipitation: 'Niederschlag', no_forecast: 'Noch keine Vorhersage',
     },
     es: {
         feels_like: 'Sensación térmica', indoors: 'Interior',
@@ -36,6 +42,8 @@ const STRINGS: Record<string, Partial<Record<CardString, string>>> = {
         first_light: 'Alba', last_light: 'Anochecer', moon: 'Luna',
         in_duration: 'en {duration}',
         note_reading: 'Leyendo el pronóstico', note_writing: 'Escribiendo la nota',
+        now: 'Ahora', today: 'Hoy', forecast_hourly: 'Pronóstico por horas', forecast_daily: 'Pronóstico diario',
+        high: 'Máxima', low: 'Mínima', precipitation: 'Precipitación', no_forecast: 'Aún no hay pronóstico',
     },
     fr: {
         feels_like: 'Ressenti', indoors: 'Intérieur',
@@ -43,6 +51,8 @@ const STRINGS: Record<string, Partial<Record<CardString, string>>> = {
         first_light: 'Aube', last_light: 'Crépuscule', moon: 'Lune',
         in_duration: 'dans {duration}',
         note_reading: 'Lecture des prévisions', note_writing: 'Rédaction de la note',
+        now: 'Maint.', today: 'Auj.', forecast_hourly: 'Prévisions horaires', forecast_daily: 'Prévisions quotidiennes',
+        high: 'Max.', low: 'Min.', precipitation: 'Précipitations', no_forecast: 'Pas encore de prévisions',
     },
     it: {
         feels_like: 'Percepita', indoors: 'Interno',
@@ -50,6 +60,8 @@ const STRINGS: Record<string, Partial<Record<CardString, string>>> = {
         first_light: 'Prima luce', last_light: 'Ultima luce', moon: 'Luna',
         in_duration: 'tra {duration}',
         note_reading: 'Lettura delle previsioni', note_writing: 'Scrittura della nota',
+        now: 'Ora', today: 'Oggi', forecast_hourly: 'Previsioni orarie', forecast_daily: 'Previsioni giornaliere',
+        high: 'Massima', low: 'Minima', precipitation: 'Precipitazioni', no_forecast: 'Ancora nessuna previsione',
     },
     nl: {
         feels_like: 'Voelt als', indoors: 'Binnen',
@@ -57,6 +69,8 @@ const STRINGS: Record<string, Partial<Record<CardString, string>>> = {
         first_light: 'Ochtendschemering', last_light: 'Avondschemering', moon: 'Maan',
         in_duration: 'over {duration}',
         note_reading: 'Verwachting lezen', note_writing: 'Notitie schrijven',
+        now: 'Nu', today: 'Vandaag', forecast_hourly: 'Verwachting per uur', forecast_daily: 'Verwachting per dag',
+        high: 'Hoogste', low: 'Laagste', precipitation: 'Neerslag', no_forecast: 'Nog geen verwachting',
     },
     pl: {
         feels_like: 'Odczuwalna', indoors: 'Wewnątrz',
@@ -64,6 +78,8 @@ const STRINGS: Record<string, Partial<Record<CardString, string>>> = {
         first_light: 'Świt', last_light: 'Zmierzch', moon: 'Księżyc',
         in_duration: 'za {duration}',
         note_reading: 'Czytanie prognozy', note_writing: 'Pisanie notatki',
+        now: 'Teraz', today: 'Dziś', forecast_hourly: 'Prognoza godzinowa', forecast_daily: 'Prognoza dzienna',
+        high: 'Maks.', low: 'Min.', precipitation: 'Opady', no_forecast: 'Brak prognozy',
     },
     pt: {
         feels_like: 'Sensação térmica', indoors: 'Interior',
@@ -71,6 +87,8 @@ const STRINGS: Record<string, Partial<Record<CardString, string>>> = {
         first_light: 'Aurora', last_light: 'Crepúsculo', moon: 'Lua',
         in_duration: 'em {duration}',
         note_reading: 'Leitura da previsão', note_writing: 'Escrita da nota',
+        now: 'Agora', today: 'Hoje', forecast_hourly: 'Previsão por hora', forecast_daily: 'Previsão diária',
+        high: 'Máxima', low: 'Mínima', precipitation: 'Precipitação', no_forecast: 'Ainda sem previsão',
     },
     ro: {
         feels_like: 'Resimțită', indoors: 'Interior',
@@ -78,6 +96,8 @@ const STRINGS: Record<string, Partial<Record<CardString, string>>> = {
         first_light: 'Zori', last_light: 'Amurg', moon: 'Lună',
         in_duration: 'în {duration}',
         note_reading: 'Citesc prognoza', note_writing: 'Scriu nota',
+        now: 'Acum', today: 'Azi', forecast_hourly: 'Prognoză orară', forecast_daily: 'Prognoză zilnică',
+        high: 'Maxima', low: 'Minima', precipitation: 'Precipitații', no_forecast: 'Încă nu există prognoză',
     },
 };
 
