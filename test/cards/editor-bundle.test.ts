@@ -15,11 +15,11 @@ describe('the editors\' bundle', () => {
         document.head.querySelectorAll('script[data-test-main]').forEach(s => s.remove());
     });
 
-    it('holds both cards\' editors, and the main bundle neither', () => {
+    it('holds every card\'s editor, and the main bundle none', () => {
         const main = readFileSync(join(process.cwd(), 'animated-weather-card.js'), 'utf8');
         const editors = readFileSync(join(process.cwd(), 'animated-weather-card-editor.js'), 'utf8');
         // The tracker's editor, and the gestures' controls
-        for (const text of ['Share the sky of a weather entity', 'Double tap behavior']) {
+        for (const text of ['Share the sky of a weather entity', 'Double tap behavior', 'Sun entity, for the sky\'s time of day']) {
             expect(editors).toContain(text);
             expect(main).not.toContain(text);
         }
