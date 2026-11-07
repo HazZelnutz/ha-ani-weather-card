@@ -915,6 +915,9 @@ a { color: inherit; }
 .frame-scene[data-layout="wide"] .cards { height: 100%; }
 .frame-scene[data-layout="wide"] .cards > * { flex: 1; min-height: 0; }
 .frame-scene animated-sun-tracker-card { height: auto; }
+/* The forecast keeps its own height on the wall too, a card in a wide section */
+.frame-scene animated-weather-forecast-card { height: auto; }
+.frame-scene[data-layout="wide"] .cards > animated-weather-forecast-card { flex: none; }
 
 .frame-stage .stage-light { transition: opacity 1.6s var(--ease-in-out-sine) 0.2s, transform 0.52s var(--ease-drawer); }
 .js .frame-stage:not(.is-shown) .frame-box,
@@ -954,6 +957,8 @@ a { color: inherit; }
 .tracker-title { grid-column: 1; }
 .tracker-copy { grid-column: 2; }
 .tracker-copy .section-lede { margin: 0 0 18px; }
+/* The forecast's section follows the tracker's, a little closer */
+.forecast { margin-top: calc(var(--section) * 0.75); }
 /* The group under the view waits for the card, then follows it in */
 .tracker-stage .frame-after { transition-delay: 0.35s; }
 /* The section ends where its content ends: the box keeps its size for the

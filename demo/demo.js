@@ -9,7 +9,7 @@ import {
     STATION, SUN_TIMES, buildHass, colorsYaml, conditionIcon, configYaml, customColors, dashboardLayout, dashboardYaml,
     engineSettings, engineYaml, forgetNotes, formatEngineValue, liveReading, minutesFor, nextFlight, noteYaml, paletteOf,
     phaseForHour, phaseForSun, placeName, quietOptions,
-    solarAt, solarTimes, stationStates, sunAt, trackerYaml, weatherState, wmoCondition,
+    solarAt, solarTimes, stationStates, sunAt, trackerYaml, forecastYaml, weatherState, wmoCondition,
 } from './scene.mjs';
 import { copyButton, highlight, svgIcon } from './code.mjs';
 
@@ -218,8 +218,8 @@ function feed(scene, current = hass()) {
 
 /**
  * Resolves once every weather card in the scene has drawn its first sky,
- * or, for a tracker on its own, once the tracker has drawn (it renders in
- * its own shadow DOM, so this checks each frame), or `limit` ms on.
+ * or, for a tracker or a forecast card on its own, once it has drawn (they
+ * render in their own shadow DOM, so this checks each frame), or `limit` ms on.
  */
 function whenReady(scene, isCancelled, limit = 600) {
     return new Promise((resolve) => {
@@ -227,6 +227,9 @@ function whenReady(scene, isCancelled, limit = 600) {
         const ready = () => {
             const skies = [...scene.el.querySelectorAll('.animated-weather-card')];
             if (skies.length) return skies.every(sky => !sky.classList.contains('loading'));
+            // A forecast card has drawn once its forecast is in
+            const forecast = scene.el.querySelector('animated-weather-forecast-card');
+            if (forecast) return !!forecast.shadowRoot?.querySelector('.fc-row, .fc-no-data');
             return !!scene.el.querySelector('animated-sun-tracker-card')?.shadowRoot?.querySelector('.st-card');
         };
         const check = () => {
@@ -338,7 +341,7 @@ function reveal(scene) {
 function update() {
     const data = hass();
     for (const scene of document.querySelectorAll('.scene:not(.lab-scene)')) {
-        for (const card of scene.querySelectorAll('animated-weather-card, animated-sun-tracker-card')) card.hass = data;
+        for (const card of scene.querySelectorAll('animated-weather-card, animated-sun-tracker-card, animated-weather-forecast-card')) card.hass = data;
     }
     for (const lab of labs) lab.refresh();
     watchSky();
@@ -797,7 +800,9 @@ const BAR_START = `<span class="bar-icon">${svgIcon('mdi:menu')}</span><span>Ove
 const BAR_END = `<span class="bar-icon">${svgIcon('mdi:magnify')}</span><span class="bar-icon">${svgIcon('mdi:dots-vertical')}</span>`;
 
 /** The sky a scene lights its room with: the weather card's, or a tracker's on its own. */
-const skyOf = (scene) => scene?.weather?.querySelector('.animated-weather-card') ?? scene?.tracker?.shadowRoot?.querySelector('.st-card');
+const skyOf = (scene) => scene?.weather?.querySelector('.animated-weather-card')
+    ?? scene?.tracker?.shadowRoot?.querySelector('.st-card')
+    ?? scene?.forecast?.shadowRoot?.querySelector('.fc-card');
 
 /**
  * One frame and its picker. `build` makes the scene for a layout. While
@@ -807,7 +812,7 @@ const skyOf = (scene) => scene?.weather?.querySelector('.animated-weather-card')
  * `follow`, the section ends where its content ends, and what's under
  * the frame glides to its new place (see glide).
  */
-function createFrame({ section, layout, build, captions, label, wallFrom, probe = [], follow, clip, onLayout, onShow, hold = () => false }) {
+function createFrame({ section, layout, build, captions, label, names = LAYOUT_NAMES, wallFrom, probe = [], follow, clip, onLayout, onShow, hold = () => false }) {
     const stage = section.querySelector('.frame-stage');
     const figure = stage.querySelector('.frame-figure');
     const frame = figure.querySelector('.frame');
@@ -827,8 +832,8 @@ function createFrame({ section, layout, build, captions, label, wallFrom, probe 
 
     /** Name the layout for screen readers as soon as it's chosen. */
     function announce() {
-        frame.setAttribute('aria-label', label(LAYOUT_NAMES[view.layout]));
-        status.textContent = `${LAYOUT_NAMES[view.layout]} layout`;
+        frame.setAttribute('aria-label', label(names[view.layout]));
+        status.textContent = `${names[view.layout]} layout`;
     }
 
     /**
@@ -1059,7 +1064,8 @@ function createFrame({ section, layout, build, captions, label, wallFrom, probe 
         if (wallNote) wallNote.hidden = fits;
         control.style.setProperty('--count', fits ? 3 : 2);
         if (!fits && view.layout === 'wide') {
-            const card = control.querySelector('input[value="regular"]');
+            // The first layout: the card
+            const card = control.querySelector('input');
             card.checked = true;
             card.dispatchEvent(new Event('change', { bubbles: true }));
         }
@@ -1671,6 +1677,56 @@ renderTrackerYaml();
 copyButton($('#tracker-copy'), () => trackerText, trackerYamlEl);
 
 new ResizeObserver(placeScrubber).observe(sunFrame.stage);
+
+// ── The forecast: the days or the hours ahead ──────────────────────────
+// The forecast card in a frame of its own, on the hero's weather: the page's
+// stand-in for Home Assistant answers its forecast subscription with a week
+// that follows the weather chosen, or a day of hours warming into the
+// afternoon. The wall shows the hours across a wide section.
+const forecastSnippet = $('#forecast-snippet');
+const renderForecastSnippet = snippetRenderer($('#forecast-yaml'));
+let forecastText = '';
+
+function buildForecastScene(layout) {
+    const el = document.createElement('div');
+    el.className = 'scene forecast-scene';
+    el.dataset.layout = layout;
+    el.innerHTML = '<div class="cards"></div>';
+    const forecast = document.createElement('animated-weather-forecast-card');
+    forecast.setConfig({
+        type: 'custom:animated-weather-forecast-card',
+        entity: ENTITIES.weather,
+        sun_entity: ENTITIES.sun,
+        ...(layout === 'daily' ? {} : { forecast_type: 'hourly' }),
+        color_palette: state.colors === 'sky' ? 'default' : 'theme',
+    });
+    el.firstElementChild.append(forecast);
+    return { el, weather: null, tracker: null, forecast, cards: [forecast] };
+}
+
+const forecastFrame = createFrame({
+    section: $('#forecast'),
+    layout: 'daily',
+    names: { daily: 'Daily', hourly: 'Hourly', wide: 'Wide' },
+    build: buildForecastScene,
+    captions: {
+        daily: 'On a phone, the week ahead.',
+        hourly: 'On a phone, the hours that fit across it.',
+        wide: 'In a section that spans two columns: twelve hours.',
+    },
+    label: (name) => `Live preview of the forecast card, ${name}`,
+    wallFrom: 720,
+    follow: () => [...document.querySelectorAll('#forecast ~ *, .colophon')],
+    clip: () => forecastSnippet,
+    onShow: () => renderForecastYaml(),
+});
+
+function renderForecastYaml() {
+    forecastText = forecastYaml({ layout: forecastFrame.view.layout, colors: state.colors === 'sky' ? 'sky' : 'theme' });
+    renderForecastSnippet(forecastText);
+}
+renderForecastYaml();
+copyButton($('#forecast-copy'), () => forecastText, $('#forecast-yaml'));
 document.fonts?.ready.then(placeScrubber);
 placeThumb();
 
@@ -1696,7 +1752,7 @@ form.addEventListener('change', (event) => {
         // Between the two themes only the theme's variables change.
         const wasSky = state.colors === 'sky';
         state.colors = value;
-        for (const room of [stage, dash.stage, sunFrame.stage, tuneLab.stage]) {
+        for (const room of [stage, dash.stage, sunFrame.stage, forecastFrame.stage, tuneLab.stage]) {
             room.dataset.colors = value === 'sky' ? 'sky' : 'theme';
             room.dataset.dashboard = value === 'light' ? 'light' : 'dark';
         }
@@ -1704,6 +1760,7 @@ form.addEventListener('change', (event) => {
             mountScene();
             dash.mount();
             sunFrame.mount();
+            forecastFrame.mount();
             tuneLab.mount();
         }
         renderYaml();
@@ -2169,6 +2226,7 @@ function remountFollowers() {
     mountScene();
     dash.mount();
     sunFrame.mount();
+    forecastFrame.mount();
 }
 async function goLive() {
     const request = ++liveRequest;

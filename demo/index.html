@@ -364,6 +364,59 @@
             </div>
         </section>
 
+        <section class="tracker forecast" id="forecast" aria-labelledby="forecast-title">
+            <h2 class="section-title tracker-title" id="forecast-title">
+                <span>The days ahead, in one line.</span>
+                <span class="title-quiet">Or the hours.</span>
+            </h2>
+            <div class="tracker-copy">
+                <p class="section-lede">The forecast card comes in the same download too. It reads your weather entity's daily or hourly forecast and draws it under the same sky: the weather for each slot, the high and the low as two lines you can follow, and the chance of rain where there is one.</p>
+                <fieldset class="field layout-picker" id="forecast-picker">
+                    <legend class="visually-hidden">Forecast card layout</legend>
+                    <div class="segmented" style="--count: 3; --index: 0">
+                        <span class="segmented-thumb" aria-hidden="true"></span>
+                        <label><input type="radio" name="forecast-layout" value="daily" checked><span>Daily</span></label>
+                        <label><input type="radio" name="forecast-layout" value="hourly"><span>Hourly</span></label>
+                        <label><input type="radio" name="forecast-layout" value="wide"><span>Wide</span></label>
+                    </div>
+                </fieldset>
+            </div>
+
+            <div class="frame-stage room tracker-stage forecast-stage" id="forecast-stage" data-dashboard="dark">
+                <div class="stage-light" aria-hidden="true"></div>
+                <div class="frame-figure" data-layout="daily">
+                    <div class="frame-box">
+                        <div class="frame-shadow" aria-hidden="true"></div>
+                        <div class="frame" role="region" aria-label="Live preview of the forecast card, Daily">
+                            <div class="frame-shell" aria-hidden="true"></div>
+                            <div class="frame-scenes"></div>
+                            <div class="frame-bar" aria-hidden="true">
+                                <span class="bar-start"></span>
+                                <span class="bar-end"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="frame-after">
+                        <p class="frame-caption"><span class="caption-text">On a phone, the week ahead.</span> <button type="button" class="code-toggle" aria-expanded="false" aria-controls="forecast-code"><span class="code-toggle-label">View code</span><span class="code-toggle-icon" aria-hidden="true"></span></button></p>
+                        <div class="snippet-slot" id="forecast-code">
+                            <div class="code-fold">
+                                <div class="code-fold-inner">
+                                <div class="snippet" id="forecast-snippet">
+                                    <div class="snippet-bar">
+                                        <span class="code-name">forecast.yaml</span>
+                                        <button type="button" class="copy" id="forecast-copy"><span class="copy-icon" aria-hidden="true"></span><span class="copy-label">Copy</span></button>
+                                    </div>
+                                    <pre><code id="forecast-yaml"></code></pre>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p class="visually-hidden frame-status" aria-live="polite"></p>
+            </div>
+        </section>
+
         <section class="config" aria-labelledby="config-title">
             <div class="config-copy">
                 <h2 class="section-title" id="config-title">Your card, in YAML.</h2>

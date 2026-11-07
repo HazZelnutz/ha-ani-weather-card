@@ -664,8 +664,82 @@ export function buildHass({
         locale: { language: 'en', time_format: 'language', number_format: 'language' },
         localize: (key) => LABELS[key] ?? '',
         formatEntityState: (stateObj) => STATE_NAMES[stateObj.state] ?? stateObj.state,
-        ...standInAi(condition.id, phase, reading, now, { tone, delays: noteDelays }),
+        ...standInAi(condition.id, phase, reading, now, { tone, delays: noteDelays, sunTimes }),
     };
+}
+
+/** The chance of rain each weather brings, in percent, and how much falls (mm). */
+const WET = {
+    sunny: [0, 0], 'clear-night': [0, 0], partlycloudy: [10, 0], cloudy: [20, 0], fog: [10, 0], windy: [10, 0],
+    rainy: [70, 4.2], pouring: [90, 12], 'lightning-rainy': [80, 8], snowy: [60, 3], 'snowy-rainy': [70, 5], hail: [60, 2],
+};
+/** How far the temperature swings between the night and the afternoon, by weather (°). */
+const SWING = { clear: 5, partlycloudy: 4, cloudy: 2.5, fog: 2, rainy: 2, pouring: 1.5, 'lightning-rainy': 3, snowy: 2, 'snowy-rainy': 1.5, hail: 2, windy: 3 };
+/** The day's warmth by the hour: coldest before dawn, warmest at three in the afternoon. */
+const warmth = (conditionId, hour) => (SWING[conditionId] ?? 3) * Math.cos((2 * Math.PI * (hour - 15)) / 24);
+const clockHour = (date) => date.getHours() + date.getMinutes() / 60;
+const round1 = (n) => Math.round(n * 10) / 10;
+
+/**
+ * The next 24 hours: the weather chosen all day, as the note's samples
+ * expect, warming into the afternoon from the reading now, with the sun
+ * setting and rising at the sample's times (or yours).
+ */
+export function hourlyForecast(conditionId, reading, now = new Date(), sunTimes = SUN_TIMES) {
+    const start = new Date(now);
+    start.setMinutes(0, 0, 0);
+    const rise = hourOf(sunTimes.rise);
+    const set = hourOf(sunTimes.set);
+    const offset = reading.temp - warmth(conditionId, clockHour(now));
+    return Array.from({ length: 24 }, (_, i) => {
+        const at = new Date(start.getTime() + i * 3600_000);
+        const middle = clockHour(at) + 0.5;
+        const day = middle >= rise && middle < set;
+        const state = weatherState(conditionId, day ? 'day' : 'night');
+        const [chance, amount] = WET[state] ?? [0, 0];
+        const temperature = round1(offset + warmth(conditionId, middle));
+        return {
+            datetime: at.toISOString(),
+            condition: state,
+            temperature,
+            apparent_temperature: round1(temperature + reading.feels - reading.temp),
+            precipitation_probability: Math.max(0, Math.min(100, Math.round(chance + 12 * Math.sin(i / 3)))),
+            precipitation: amount ? round1(amount / 6) : 0,
+            wind_speed: reading.wind,
+            is_daytime: day,
+        };
+    });
+}
+
+/** The days after today: a week that changes, as weeks do, colder ones with snow. */
+const WEEK = ['partlycloudy', 'sunny', 'rainy', 'cloudy', 'partlycloudy', 'sunny'];
+const COLD_WEEK = ['snowy', 'cloudy', 'partlycloudy', 'snowy-rainy', 'cloudy', 'sunny'];
+/** Each day a little warmer or cooler than today, and by its weather. */
+const DRIFT = [0, 1.5, -1, -2.5, -1, 1, 2.5];
+const DAY_WARMTH = { sunny: 1.5, partlycloudy: 0.5, cloudy: -0.5, rainy: -2, pouring: -2.5, 'lightning-rainy': -1, snowy: -1, 'snowy-rainy': -1, hail: -1.5 };
+
+/** Seven days from today: today's weather first, then the week's. */
+export function dailyForecast(conditionId, reading, now = new Date()) {
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    // Today's high and low, from the reading now and the hour it was read
+    const base = reading.temp - warmth(conditionId, clockHour(now));
+    const week = reading.temp < 3 ? COLD_WEEK : WEEK;
+    return DRIFT.map((drift, i) => {
+        const state = i === 0 ? weatherState(conditionId, 'day') : week[(i - 1) % week.length];
+        const swing = SWING[i === 0 ? conditionId : state === 'sunny' ? 'clear' : state] ?? 3;
+        const middle = base + drift + (i === 0 ? 0 : DAY_WARMTH[state] ?? 0);
+        const [chance, amount] = WET[state] ?? [0, 0];
+        return {
+            datetime: new Date(today.getTime() + i * 86_400_000 + 12 * 3600_000).toISOString(),
+            condition: state,
+            temperature: round1(middle + swing),
+            templow: round1(middle - swing - 2),
+            precipitation_probability: chance,
+            precipitation: amount,
+            wind_speed: reading.wind,
+        };
+    });
 }
 
 /** The user's frontend storage, shared by every card on the page as it is by every screen on a dashboard. */
@@ -695,18 +769,11 @@ const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * can be a function, read when the AI answers, so a voice picked while a
  * note is being written is the one it comes back in.
  */
-function standInAi(conditionId, phase, reading, now, { tone = 'snarky', delays = null } = {}) {
-    const wet = ['rainy', 'pouring', 'lightning-rainy', 'snowy', 'snowy-rainy', 'hail'].includes(conditionId);
-    const hour = new Date(now);
-    hour.setMinutes(0, 0, 0);
-    const forecast = Array.from({ length: 12 }, (_, i) => ({
-        datetime: new Date(hour.getTime() + i * 3600_000).toISOString(),
-        condition: weatherState(conditionId, phase),
-        temperature: reading.temp,
-        apparent_temperature: reading.feels,
-        precipitation_probability: wet ? 80 : 10,
-        wind_speed: reading.wind,
-    }));
+function standInAi(conditionId, phase, reading, now, { tone = 'snarky', delays = null, sunTimes = SUN_TIMES } = {}) {
+    const forecasts = {
+        hourly: hourlyForecast(conditionId, reading, now, sunTimes),
+        daily: dailyForecast(conditionId, reading, now),
+    };
     return {
         callService: async (domain, service) => {
             if (domain !== 'ai_task' || service !== 'generate_data') return undefined;
@@ -732,6 +799,7 @@ function standInAi(conditionId, phase, reading, now, { tone = 'snarky', delays =
                     return () => userDataListeners.get(message.key).delete(listener);
                 }
                 if (message.type === 'weather/subscribe_forecast') {
+                    const forecast = forecasts[message.forecast_type] ?? forecasts.hourly;
                     const answer = () => listener({ type: message.forecast_type, forecast });
                     if (!delays?.forecast) answer();
                     else {
@@ -826,4 +894,20 @@ export function trackerYaml({ layout = 'regular', colors = 'sky' } = {}) {
         ...item(['type: custom:animated-weather-card', 'entity: weather.forecast_home', 'sun_entity: sun.sun', 'show_sun: false', ...theme]),
         ...item(tracker),
     ].join('\n') + '\n';
+}
+
+/**
+ * The forecast card at the layout its section shows: daily on a phone, or
+ * hourly, on a phone or across a wide section.
+ */
+export function forecastYaml({ layout = 'daily', colors = 'sky' } = {}) {
+    const lines = [
+        'type: custom:animated-weather-forecast-card',
+        'entity: weather.forecast_home',
+        'sun_entity: sun.sun',
+        ...(layout === 'daily' ? [] : ['forecast_type: hourly']),
+        ...(colors === 'theme' ? ['color_palette: theme  # follows your Home Assistant theme'] : []),
+    ];
+    if (layout === 'wide') lines.unshift('# A section that spans two columns fits twelve hours');
+    return lines.join('\n') + '\n';
 }
