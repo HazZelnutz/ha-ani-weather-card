@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- A forecast card, `custom:animated-weather-forecast-card`, in the same download. It draws your weather entity's daily or hourly forecast under the weather card's sky: a small drawing of each day's or hour's weather, the high and the low as two lines across the card, and the chance of rain where there is one. A narrow card shows as many days or hours as fit. It has a visual editor, is suggested for weather entities in Home Assistant 2026.6 and later, and is in the live demo.
+- A forecast card, `custom:animated-weather-forecast-card`, in the same download. It draws your weather entity's daily or hourly forecast under the weather card's sky: a small drawing of each day's or hour's weather, the high and the low as two lines across the card, and the chance of rain where there is one. A narrow card shows as many days or hours as fit. `show_lines: false` leaves out the lines and shows only each high over its low. It has a visual editor, is suggested for weather entities in Home Assistant 2026.6 and later, and is in the live demo.
 
 ## [1.2.0] - 2026-11-06
 

@@ -39,6 +39,8 @@ export interface ForecastCardConfig {
     title?: string;
     show_header?: boolean;
     show_precipitation?: boolean;
+    /** The high and low as lines (the default), or as plain numbers under the glyphs */
+    show_lines?: boolean;
     /** The glyphs' gentle motion (default: on, still with reduced motion) */
     animate?: boolean;
     color_palette?: 'default' | 'theme';
@@ -515,6 +517,29 @@ ${iconBoxCss('')}
         opacity: var(--fc-secondary-opacity);
     }
 
+    /* Without the lines: the high over the low in each slot, the low in the quiet tier */
+    .fc-temps { margin: 6px 0 4px; }
+    .fc-temps-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .fc-temps-high {
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 18px;
+        letter-spacing: -0.01em;
+    }
+    .fc-temps-low {
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 16px;
+        color: var(--fc-secondary);
+        opacity: var(--fc-secondary-opacity);
+    }
+
     /* ── Precipitation ── */
     .fc-wet {
         display: flex;
@@ -541,12 +566,15 @@ ${iconBoxCss('')}
     .fc-card[data-fit="tight"] .fc-glyphs { margin-top: 2px; }
     .fc-card[data-fit="tight"] .fc-chart { min-height: 56px; }
     .fc-card[data-fit="tight"] .fc-plot { inset: 19px 0 19px; }
+    .fc-card[data-fit="tight"] .fc-temps { margin: 2px 0; }
 
     @container fc (min-width: 640px) {
         .fc-when { font-size: 14px; }
         .fc-glyph { width: 34px; height: 34px; }
         .fc-temp { font-size: 17px; line-height: 18px; }
         .fc-temp.low { font-size: 14px; }
+        .fc-temps-high { font-size: 17px; line-height: 20px; }
+        .fc-temps-low { font-size: 14px; line-height: 18px; }
         .fc-wet { font-size: 13px; }
     }
 
@@ -713,11 +741,18 @@ class AnimatedWeatherForecastCard extends HTMLElement {
         return readActions(this.config as Record<string, unknown>, this.config.entity);
     }
 
-    getCardSize(): number { return 4; }
+    getCardSize(): number { return this._lines() ? 4 : 3; }
 
-    /** Sections view: full section width, four rows; three is the least it trims down to. */
+    /**
+     * Sections view: full section width, four rows; three is the least it
+     * trims down to. Without the lines, the numbers fit in three.
+     */
     getGridOptions() {
-        return { columns: 12, rows: 4, min_columns: 6, min_rows: 3 };
+        return { columns: 12, rows: this._lines() ? 4 : 3, min_columns: 6, min_rows: 3 };
+    }
+
+    private _lines(): boolean {
+        return this.config?.show_lines !== false;
     }
 
     /** The editor comes in the editor bundle, loaded the first time it's needed */
@@ -884,7 +919,7 @@ class AnimatedWeatherForecastCard extends HTMLElement {
             <div class="fc-visual" aria-hidden="true" style="display: contents; --fc-n: ${n}">
                 <div class="fc-row fc-times">${slots.map(s => `<div class="fc-when${s.current ? ' current' : ''}">${this._slotLabel(s)}</div>`).join('')}</div>
                 <div class="fc-row fc-glyphs">${glyphs}</div>
-                <div class="fc-chart${hasLow ? '' : ' single'}">
+                ${this._lines() ? `<div class="fc-chart${hasLow ? '' : ' single'}">
                     <div class="fc-plot">
                         <svg viewBox="0 0 ${VW} ${VH}" preserveAspectRatio="none">
                             ${bands.map(d => `<path class="fc-band" d="${d}"/>`).join('')}
@@ -893,7 +928,9 @@ class AnimatedWeatherForecastCard extends HTMLElement {
                         </svg>
                         ${marks}
                     </div>
-                </div>
+                </div>` : `<div class="fc-row fc-temps">${slots.map(s => `<div class="fc-temps-cell">${
+                    s.high !== null ? `<span class="fc-temps-high">${escapeHtml(this._degrees(s.high))}</span>` : ''}${
+                    s.low !== null ? `<span class="fc-temps-low">${escapeHtml(this._degrees(s.low))}</span>` : ''}</div>`).join('')}</div>`}
                 ${showWet ? `<div class="fc-row fc-precip">${wet.map(text => `<div class="fc-wet">${text ? `${DROP}<span>${escapeHtml(text)}</span>` : ''}</div>`).join('')}</div>` : ''}
             </div>
             <ul class="visually-hidden">${said}</ul>`;

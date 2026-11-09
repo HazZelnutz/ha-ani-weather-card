@@ -133,6 +133,7 @@ export class AnimatedWeatherForecastEditor extends HTMLElement {
                 ${textField({ id: 'title', label: 'Title (optional)', value: c.title })}
                 <div class="fc-switches">
                     ${toggle('show_header', 'Header', 'The title, or which forecast this is', c.show_header !== false)}
+                    ${toggle('show_lines', 'Temperature lines', 'The high and low as lines across the card, or only their numbers', c.show_lines !== false)}
                     ${toggle('show_precipitation', 'Chance of rain', `From ${escapeHtml('10%')}, or the amount where the forecast has no chance`, c.show_precipitation !== false)}
                     ${toggle('animate', 'Animate the weather', 'Rain falls and clouds drift in each slot. Reduced motion keeps it still.', c.animate !== false)}
                     ${toggle('theme_palette', 'Blend with dashboard theme', 'Use theme colors instead of the sky', c.color_palette === 'theme')}
@@ -209,6 +210,7 @@ export class AnimatedWeatherForecastEditor extends HTMLElement {
             });
         };
         onSwitch('show_header', checked => ({ show_header: checked ? undefined : false }));
+        onSwitch('show_lines', checked => ({ show_lines: checked ? undefined : false }));
         onSwitch('show_precipitation', checked => ({ show_precipitation: checked ? undefined : false }));
         onSwitch('animate', checked => ({ animate: checked ? undefined : false }));
         onSwitch('theme_palette', checked => ({ color_palette: checked ? 'theme' : undefined }));

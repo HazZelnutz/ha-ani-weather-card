@@ -597,6 +597,7 @@ Set these under `custom_colors:`. Leave one out to keep the built-in colour.
 | `sun_entity` | `sun.sun` | Sets the sky's time of day, and which hours are at night when the forecast doesn't say |
 | `title` | — | A title in place of "Daily forecast" or "Hourly forecast" |
 | `show_header` | `true` | Show the title, or which forecast this is |
+| `show_lines` | `true` | Draw the high and low as lines across the card. With `false`, each day or hour shows only its high over its low, and the card takes three rows |
 | `show_precipitation` | `true` | Show the chance of rain from 10%, or the amount where the forecast gives no chance |
 | `animate` | `true` | Rain falls and clouds drift in each drawing. Reduced motion keeps them still |
 | `color_palette` | `default` | `default` for the sky, or `theme` for your dashboard's colours |

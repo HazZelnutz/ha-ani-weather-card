@@ -198,6 +198,15 @@ describe('forecast card', () => {
         expect(root.querySelector('.fc-card')!.classList.contains('sky')).toBe(false);
     });
 
+    it('shows only the numbers without the lines, in three rows', () => {
+        const { root } = mount({ show_lines: false });
+        expect(root.querySelector('.fc-chart')).toBeNull();
+        expect(root.querySelectorAll('.fc-temps-cell').length).toBe(root.querySelectorAll('.fc-when').length);
+        expect(root.querySelector('.fc-temps-high')!.textContent).toMatch(/°$/);
+        expect(root.querySelector('.fc-temps-low')!.textContent).toMatch(/°$/);
+        expect(card!.getGridOptions()).toMatchObject({ rows: 3 });
+    });
+
     it('escapes the title', () => {
         const { root } = mount({ title: '<img src=x onerror=alert(1)>' });
         expect(root.querySelector('img')).toBeNull();
