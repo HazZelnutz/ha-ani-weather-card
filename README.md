@@ -46,6 +46,8 @@ The download includes a second card, just for the sun. It shows the sun's path a
 
 A third card, also in the download, draws the forecast from your weather entity, daily or hourly. Each day or hour gets a small drawing of its weather in the cards' own light, the high and the low run across the card as two lines you can follow, and the chance of rain sits underneath where there is one. Its sky is your weather now, as on the weather card. [Set it up](#forecast).
 
+![The forecast card: the week ahead on a partly cloudy afternoon, and the hours from dusk into the night](docs/images/forecast.webp)
+
 ## Better together.
 
 Stack a compact sun tracker under the weather card and the two read as one piece. They share your weather entity's sky, their text lines up, and rain falling out of the weather card passes behind the tracker. [Set it up](#weather-and-sun-tracker).
@@ -105,8 +107,8 @@ The card ships as five files that sit in the same folder:
 
 | File | What it is |
 | --- | --- |
-| `animated-weather-card.js` | Both cards. This is the only dashboard resource you add. |
-| `animated-weather-card-editor.js` | The visual editors for both cards. It loads the first time you open a card's settings. |
+| `animated-weather-card.js` | All three cards. This is the only dashboard resource you add. |
+| `animated-weather-card-editor.js` | The visual editors for all three cards. It loads the first time you open a card's settings. |
 | `animated-weather-card-note.js` | The note writer. It loads only for cards that write their own note (`show_note`). |
 | `animated-weather-card-planes.js` | The planes. It loads only for cards with a flights sensor (`flights_entity`). |
 | `animated-weather-card-dev.js` | The developer panel. It loads only for cards with `dev_mode: true`, so a manual install can leave it out. |
@@ -166,9 +168,9 @@ To update a manual install, overwrite the files and raise the `?v=` number in th
    - **Weather engine**
    - **Colors**
 
-For the sun tracker, search for **Animated Sun Tracker**. It starts on `sun.sun`, with your moon sensor if you have one.
+For the sun tracker, search for **Animated Sun Tracker**. It starts on `sun.sun`, with your moon sensor if you have one. For the forecast, search for **Animated Weather Forecast**. It starts on your weather entity.
 
-In Home Assistant 2026.6 and later, the **By entity** tab suggests both cards too: pick your weather entity, or `sun.sun`, and they're under **Community**, regular and compact.
+In Home Assistant 2026.6 and later, the **By entity** tab suggests the cards too: pick your weather entity, or `sun.sun`, and they're under **Community**. The weather card and the sun tracker come regular and compact, the forecast daily and hourly.
 
 Or in YAML:
 
@@ -238,6 +240,26 @@ entity: weather.forecast_home
 sun_entity: sun.sun
 ```
 
+In a section that spans two columns, the hourly forecast has room for all twelve hours:
+
+```yaml
+type: custom:animated-weather-forecast-card
+entity: weather.forecast_home
+forecast_type: hourly
+```
+
+![The hourly forecast across a wide section: twelve hours from a partly cloudy afternoon into the night](docs/images/forecast-wide.webp)
+
+To show only each day's high over its low, without the lines, add `show_lines: false`. The card then takes three rows.
+
+```yaml
+type: custom:animated-weather-forecast-card
+entity: weather.forecast_home
+show_lines: false
+```
+
+![The daily forecast with its lines, and the same week with show_lines: false, each high over its low](docs/images/forecast-lines.webp)
+
 ### Two strips
 
 Both cards in compact form. Together they take about 200 px: the temperature, the condition and the next sunrise or sunset.
@@ -256,12 +278,13 @@ cards:
 
 ### Sections view
 
-Both cards size themselves in the sections view, and you can resize them freely:
+The cards size themselves in the sections view, and you can resize them freely:
 
 - **Weather card:** 12 columns × 4 rows by default, 12 × 5 with a note, or 12 × 2 compact.
 - **Sun tracker:** 12 × 6 by default, or 12 × 2 compact.
+- **Forecast:** 12 × 4 by default, or 12 × 3 with `show_lines: false`.
 
-If you give a card fewer rows, it steps down to fit, and stops at the first layout that does:
+If you give the weather card fewer rows, it steps down to fit, and stops at the first layout that does:
 
 1. The line under the condition goes first.
 2. Then the temperature shrinks.
@@ -640,7 +663,7 @@ Free-text conditions can also reach these skies:
 
 ## Languages
 
-Both cards follow your Home Assistant profile: its language and its 12/24-hour time format.
+All three cards follow your Home Assistant profile: its language and its 12/24-hour time format.
 
 - **From Home Assistant:** the weather condition, the moon phase, and the humidity, wind and pressure labels come from Home Assistant's own translations.
 - **The cards' own words:** "Feels like", "Indoors", sunrise and sunset, the sun tracker's labels and the forecast card's are translated into:
@@ -720,6 +743,9 @@ src/
 ├── animated-weather-card-editor.ts # Entry point of the editor bundle
 ├── config-editor.ts                # Visual editor for the weather card
 ├── sun-tracker-editor.ts           # Visual editor for the sun tracker
+├── forecast-card.ts                # The forecast card
+├── weather-glyphs.ts               # The forecast card's drawings of the weather
+├── forecast-editor.ts              # Visual editor for the forecast card
 ├── animated-weather-card-dev.ts    # Entry point of the developer panel bundle
 ├── dev-panel.ts                    # Developer panel (dev_mode)
 ├── animated-weather-card-note.ts   # Entry point of the note writer bundle
